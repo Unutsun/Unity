@@ -1,0 +1,317 @@
+project:
+  name: "ブロック崩し - Unity版"
+  description: "HTML5/Canvasゲームから移植したUnity 2D ブロック崩しゲーム"
+  original: "HTML5 Canvas + JavaScript版から移植"
+  version: "1.0.0"
+  unity_version: "2021.3 LTS以上推奨"
+
+directory_structure:
+  root: "Unity/"
+  directories:
+    - name: "Scripts"
+      description: "C#スクリプト"
+      files:
+        - name: "BallController.cs"
+          description: "ボールの移動と衝突判定"
+          features:
+            - "パドルに追従（発射前）"
+            - "Rigidbody2Dベースの物理演算"
+            - "パドル衝突時の反射角度計算"
+            - "壁・ブロック衝突処理"
+
+        - name: "PaddleController.cs"
+          description: "パドルの移動制御"
+          features:
+            - "キーボード入力（←→キー）"
+            - "マウス追従"
+            - "タッチ入力対応"
+            - "移動境界制限"
+
+        - name: "BrickController.cs"
+          description: "個別ブロックの挙動"
+          features:
+            - "耐久度システム"
+            - "破壊時のイベント発火"
+            - "色・スコア設定"
+
+        - name: "BrickManager.cs"
+          description: "ブロック群の生成・管理"
+          features:
+            - "グリッド配置でブロック生成"
+            - "行ごとの色分け"
+            - "全破壊判定"
+
+        - name: "GameManager.cs"
+          description: "ゲーム全体の状態管理"
+          features:
+            - "ゲーム状態（Ready/Playing/Paused/GameOver/Victory）"
+            - "スコア・残機管理"
+            - "イベント駆動アーキテクチャ"
+
+        - name: "UIManager.cs"
+          description: "UI表示管理"
+          features:
+            - "スコア・残機表示"
+            - "各状態のパネル切替"
+            - "ハイスコア保存（PlayerPrefs）"
+
+    - name: "Prefabs"
+      description: "プレハブ（要作成）"
+      note: "Unityエディタで作成してください"
+
+    - name: "Scenes"
+      description: "シーン（要作成）"
+      note: "Unityエディタで作成してください"
+
+game_settings:
+  original_values:
+    canvas_size: "800x600"
+    paddle:
+      width_ratio: 0.125  # 12.5%
+      height_ratio: 0.025 # 2.5%
+    ball:
+      radius_ratio: 0.01  # 1%
+      speed_ratio: 0.005  # 0.5%/frame
+    bricks:
+      rows: 5
+      cols: 8
+      colors:
+        - "#FF6B6B"  # 赤
+        - "#4ECDC4"  # ティール
+        - "#45B7D1"  # 青
+        - "#FFA07A"  # オレンジ
+        - "#98D8C8"  # 緑
+    lives: 3
+    score_per_brick: 10
+
+  unity_converted:
+    description: "Unity座標系に変換した値"
+    camera:
+      size: 5
+      aspect: "16:9"
+    paddle:
+      width: 2
+      height: 0.3
+      y_position: -4
+      speed: 10
+    ball:
+      radius: 0.2
+      speed: 8
+    bricks:
+      rows: 5
+      cols: 8
+      width: 1.5
+      height: 0.5
+      start_y: 3
+    bounds:
+      left: -8
+      right: 8
+      top: 5
+      bottom: -5
+
+setup_instructions:
+  step1:
+    title: "新規Unityプロジェクト作成"
+    steps:
+      - "Unity Hubで新規2Dプロジェクトを作成"
+      - "プロジェクト名: BreakoutGame"
+      - "テンプレート: 2D (Built-in Render Pipeline)"
+
+  step2:
+    title: "スクリプトをインポート"
+    steps:
+      - "Assets/Scripts フォルダを作成"
+      - "Unity/Scripts/*.cs をコピー"
+      - "Unityエディタでコンパイル確認"
+
+  step3:
+    title: "タグを設定"
+    steps:
+      - "Edit > Project Settings > Tags and Layers"
+      - "以下のタグを追加:"
+      - "  - Ball"
+      - "  - Paddle"
+      - "  - Brick"
+      - "  - Wall"
+      - "  - DeadZone"
+
+  step4:
+    title: "ゲームオブジェクト作成"
+    objects:
+      GameManager:
+        - "空のGameObjectを作成"
+        - "GameManager.cs をアタッチ"
+
+      Ball:
+        - "Sprite > Circle を作成"
+        - "スケール: (0.4, 0.4, 1)"
+        - "BallController.cs をアタッチ"
+        - "Rigidbody2D を追加 (Gravity Scale: 0)"
+        - "CircleCollider2D を追加"
+        - "タグ: Ball"
+        - "Physics Material 2D を作成 (Friction: 0, Bounciness: 1)"
+
+      Paddle:
+        - "Sprite > Square を作成"
+        - "スケール: (2, 0.3, 1)"
+        - "PaddleController.cs をアタッチ"
+        - "BoxCollider2D を追加"
+        - "タグ: Paddle"
+
+      Brick:
+        - "Sprite > Square を作成"
+        - "スケール: (1.5, 0.5, 1)"
+        - "BrickController.cs をアタッチ"
+        - "BoxCollider2D を追加"
+        - "タグ: Brick"
+        - "プレハブ化 (Prefabs/Brick.prefab)"
+
+      BrickManager:
+        - "空のGameObjectを作成"
+        - "BrickManager.cs をアタッチ"
+        - "Brick Prefab を設定"
+
+      Walls:
+        - "左右上の壁を作成（BoxCollider2D）"
+        - "タグ: Wall"
+        - "下の境界: タグ: DeadZone (IsTrigger: true)"
+
+  step5:
+    title: "UI設定"
+    steps:
+      - "Canvas を作成"
+      - "UIManager.cs をアタッチ"
+      - "TextMeshPro でスコア・残機表示"
+      - "パネル（Start/Pause/GameOver/Victory）を作成"
+      - "ボタンを配置・接続"
+
+  step6:
+    title: "参照を接続"
+    steps:
+      - "GameManager に Ball, Paddle, BrickManager, UIManager を設定"
+      - "BallController に PaddleController を設定"
+      - "BrickManager に Brick Prefab を設定"
+
+physics_settings:
+  description: "Physics 2D 推奨設定"
+  settings:
+    - "Edit > Project Settings > Physics 2D"
+    - "Default Contact Offset: 0.01"
+    - "Velocity Iterations: 8"
+    - "Position Iterations: 3"
+
+  physics_material:
+    name: "BouncyBall"
+    friction: 0
+    bounciness: 1
+
+controls:
+  keyboard:
+    - key: "←/→ (Arrow Keys)"
+      action: "パドル移動"
+    - key: "Space"
+      action: "ボール発射 / ゲーム開始"
+    - key: "P / Escape"
+      action: "ポーズ"
+    - key: "R"
+      action: "リスタート（ゲームオーバー時）"
+
+  mouse:
+    - action: "移動"
+      description: "パドルがマウス位置に追従"
+    - action: "クリック"
+      description: "ボール発射"
+
+  touch:
+    - action: "ドラッグ"
+      description: "パドル移動"
+    - action: "タップ"
+      description: "ボール発射"
+
+mcp_unity_usage:
+  description: "Claude Code + mcp-unity で自動セットアップする場合"
+  commands:
+    create_ball:
+      tool: "update_gameobject"
+      params:
+        objectPath: "Ball"
+        gameObjectData:
+          tag: "Ball"
+
+    add_ball_components:
+      tool: "update_component"
+      params:
+        objectPath: "Ball"
+        componentName: "Rigidbody2D"
+        componentData:
+          gravityScale: 0
+          collisionDetectionMode: 1  # Continuous
+
+    create_paddle:
+      tool: "update_gameobject"
+      params:
+        objectPath: "Paddle"
+        gameObjectData:
+          tag: "Paddle"
+
+customization:
+  difficulty:
+    easy:
+      ball_speed: 6
+      paddle_width: 2.5
+      lives: 5
+    normal:
+      ball_speed: 8
+      paddle_width: 2
+      lives: 3
+    hard:
+      ball_speed: 10
+      paddle_width: 1.5
+      lives: 2
+
+  brick_layouts:
+    standard:
+      rows: 5
+      cols: 8
+    dense:
+      rows: 8
+      cols: 10
+    sparse:
+      rows: 3
+      cols: 6
+
+future_enhancements:
+  - feature: "パワーアップアイテム"
+    items:
+      - "パドル拡大/縮小"
+      - "ボール速度変更"
+      - "マルチボール"
+      - "レーザー"
+  - feature: "レベルシステム"
+    items:
+      - "ステージクリアで次レベル"
+      - "難易度上昇"
+  - feature: "特殊ブロック"
+    items:
+      - "耐久ブロック（複数ヒット必要）"
+      - "爆発ブロック"
+      - "アイテムブロック"
+  - feature: "サウンド"
+    items:
+      - "BGM"
+      - "効果音（ヒット、破壊、ゲームオーバー）"
+  - feature: "エフェクト"
+    items:
+      - "パーティクル（ブロック破壊）"
+      - "画面シェイク"
+
+references:
+  - name: "元のHTML5版"
+    path: "../index.html"
+  - name: "Unity 2D チュートリアル"
+    url: "https://learn.unity.com/pathway/unity-essentials"
+  - name: "mcp-unity"
+    url: "https://github.com/CoderGamester/mcp-unity"
+
+created_by: "Claude Code"
+created_date: "2024-11-26"

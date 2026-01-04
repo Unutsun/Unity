@@ -1,0 +1,82 @@
+scene,state,key,text
+# ========================================
+# TitleScene
+# ========================================
+title,default,title_main,さばけ！おさかな
+title,default,button_start,さばく！
+# ========================================
+# GameScene - HUD
+# ========================================
+game,hud,label_life,ライフ:
+game,hud,label_time,制限時間:
+game,hud,label_kirimi,きりみ:
+game,hud,ready_message,スペースキーで発射！
+game,hud,button_pause,||
+# ========================================
+# GameScene - Pause
+# ========================================
+game,pause,panel_title,ポーズ
+game,pause,button_resume,つづける
+game,pause,button_title,タイトルへ
+# ========================================
+# ResultScene - Clear (共通)
+# ========================================
+result,clear,panel_title,クリア結果
+result,clear,kirimi_label,さばいたきりみ:
+result,clear,rank_label,あなたの実力は
+result,clear,rank_suffix,です
+result,clear,button_continue,つづける
+result,clear,button_end,おわる
+# ========================================
+# ResultScene - Ranks (きりみ数ベース5段階)
+# 100以上:舩盛り, 80以上:おさしみ, 50以上:さく切り, 20以上:あら汁, 20未満:エサ
+# ========================================
+result,rank,funamori,舩盛り
+result,rank,osashimi,おさしみ
+result,rank,sakugiri,さく切り
+result,rank,arajiru,あら汁
+result,rank,esa,エサ
+# ========================================
+# ResultScene - Flavor Texts (ランク別)
+# ========================================
+result,flavor,funamori,圧巻の腕前！豪華な舩盛りの完成だ！
+result,flavor,osashimi,先ほどまで生きていた新鮮なおさしみ。命を奪った事実を味わおう
+result,flavor,sakugiri,いい感じ！さく切りにして盛り付けよう！
+result,flavor,arajiru,まあまあかな...あら汁にして温まろう
+result,flavor,esa,練習あるのみ！...エサにするしかない...
+# ========================================
+# GameScene - Ranks (インゲーム用)
+# ========================================
+game,rank,funamori,舩盛り
+game,rank,osashimi,おさしみ
+game,rank,sakugiri,さく切り
+game,rank,arajiru,あら汁
+game,rank,esa,エサ
+# ========================================
+# GameScene - Flavor Texts (インゲーム用)
+# ========================================
+game,flavor,funamori,圧巻の腕前！豪華な舩盛りの完成だ！
+game,flavor,osashimi,先ほどまで生きていた新鮮なおさしみ。命を奪った事実を味わおう
+game,flavor,sakugiri,いい感じ！さく切りにして盛り付けよう！
+game,flavor,arajiru,まあまあかな...あら汁にして温まろう
+game,flavor,esa,練習あるのみ！...エサにするしかない...
+# ========================================
+# ResultScene - GameOver (分岐)
+# ========================================
+result,gameover,panel_title,No sabaki...
+result,gameover,button_retry,リトライ
+result,gameover,button_title,タイトルへ
+# GameOver理由: ライフ切れ
+result,gameover_life,flavor,材料を用意できないなら、あなた自身が供されるほかないだろう
+result,gameover_life,reason,ライフがなくなった
+# GameOver理由: 時間切れ
+result,gameover_time,flavor,時間切れ...おさかなが逃げてしまった！
+result,gameover_time,reason,制限時間オーバー
+# ========================================
+# ResultScene - Statistics (詳細表示用)
+# ========================================
+result,stats,total_bricks,総ブロック数:
+result,stats,destroyed,破壊数:
+result,stats,clear_rate,クリア率:
+result,stats,time_remaining,残り時間:
+result,stats,lives_remaining,残りライフ:

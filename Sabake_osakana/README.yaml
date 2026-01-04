@@ -1,0 +1,254 @@
+# さばけ！おさかな - README
+# Unity ブロック崩しゲーム
+# 最終更新: 2025-12-15
+
+project:
+  name: "さばけ！おさかな"
+  name_en: "Sabake Osakana"
+  type: "2D Breakout Game"
+  engine: "Unity 2022.3+ (URP)"
+  description: |
+    魚の形をしたブロックを崩して「きりみ」を集めるブロック崩しゲーム。
+    制限時間内に魚をさばいて、ランクを目指そう！
+
+gameplay:
+  objective: "魚型のブロックをすべて壊して、できるだけ多くの「きりみ」を獲得する"
+  controls:
+    mouse_touch: "パドルがマウス/タッチ位置に追従"
+    keyboard: "左右矢印キー または A/D キーでパドル移動"
+    launch: "スペースキー または クリック/タップでボール発射"
+
+  mechanics:
+    - "ライフ制（初期5、ボール落下で-1）"
+    - "制限時間90秒"
+    - "ブロック破壊で「きりみ」獲得"
+    - "パドル衝突位置で反射角度が変化"
+
+  ranks:
+    - name: "おさしみ級"
+      description: "最高ランク - 見事なさばきっぷり！"
+    - name: "たたき級"
+      description: "なかなかの腕前"
+    - name: "にぎり級"
+      description: "まずまずの出来"
+    - name: "あら煮級"
+      description: "もう少しがんばろう"
+    - name: "エサ級"
+      description: "練習あるのみ..."
+
+architecture:
+  pattern: "イベント駆動 + シングルトン"
+
+  design_principles:
+    - name: "疎結合"
+      description: "GameEventsを介したイベント駆動通信でコンポーネント間の依存を最小化"
+    - name: "SerializeFieldによる依存注入"
+      description: "Find()よりSerializeFieldを優先し、Inspector上で参照を設定"
+    - name: "フォールバック検索"
+      description: "SerializeField未設定時のみFind()で自動検索"
+    - name: "単一責任"
+      description: "各スクリプトは特定の機能のみを担当"
+
+  core_scripts:
+    GameState.cs:
+      role: "ゲーム状態管理（シングルトン）"
+      manages: ["CurrentState", "Lives", "Kirimi", "RemainingTime"]
+      states: ["Ready", "Playing", "Paused", "GameOver", "GameClear"]
+
+    GameEvents.cs:
+      role: "イベントハブ（静的クラス）"
+      events:
+        - "OnBrickDestroyed - ブロック破壊時"
+        - "OnKirimiChanged - きりみ数変更時"
+        - "OnLivesChanged - ライフ変更時"
+        - "OnBallLost - ボール落下時"
+        - "OnBallReset - ボールリセット時"
+        - "OnGameClear - ゲームクリア時"
+        - "OnGameOver - ゲームオーバー時"
+        - "OnGameRestart - リスタート時"
+
+    GameManager.cs:
+      role: "ゲーム進行制御"
+      responsibilities: ["タイマー管理", "ライフ管理", "ゲーム終了判定"]
+
+  game_objects:
+    BallController.cs:
+      role: "ボールの動き制御"
+      features:
+        - "Rigidbody2D + Physics Material 2D (bounciness=1, friction=0)"
+        - "発射前はパドルに追従"
+        - "パドル衝突位置で反射角度変化（左端150°〜右端30°）"
+        - "速度を常に一定に維持"
+        - "TrailRendererによる軌跡表示"
+        - "最小垂直速度保証（水平往復防止）"
+        - "パドル貫通防止チェック（FixedUpdate）"
+
+    PaddleController.cs:
+      role: "パドル操作制御"
+      features:
+        - "Rigidbody2D (Kinematic) + Continuous collision detection"
+        - "MovePosition()で物理的に正しい移動"
+        - "マウス/タッチ + キーボード入力対応"
+        - "カメラサイズに合わせた動的移動範囲設定"
+        - "自動コライダー設定"
+
+    BrickManager.cs:
+      role: "ブロック生成・管理"
+      features:
+        - "魚型パターン配列 (13行×17列)"
+        - "身と腹で色分け（薄赤/白）"
+        - "骨の背景表示"
+
+    BrickController.cs:
+      role: "個別ブロック制御"
+      features:
+        - "衝突時に破壊"
+        - "イベント発火（OnBrickDestroyed）"
+
+    WallSetup.cs:
+      role: "壁の自動配置"
+      features:
+        - "カメラサイズに合わせた壁位置計算"
+        - "左右上下の壁を画面端に配置"
+        - "Physics Material 2D自動設定"
+        - "下壁はTriggerでボール落下検知"
+
+    BackgroundSetup.cs:
+      role: "背景設定"
+      features:
+        - "カメラ背景色を設定"
+        - "海をイメージした青系カラー"
+
+  ui:
+    UIManager.cs:
+      role: "UI全体管理（シングルトン）"
+      elements:
+        - "HUD: ライフ(♥), タイマー, きりみ数"
+        - "ResultPanel: クリア画面"
+        - "GameOverPanel: ゲームオーバー画面"
+        - "PausePanel: ポーズ画面"
+        - "ReadyMessage: 発射待ちメッセージ"
+
+scenes:
+  - name: "SampleScene"
+    path: "Assets/Scenes/SampleScene.unity"
+    description: "メインゲームシーン"
+  - name: "TitleScene"
+    path: "Assets/Scenes/TitleScene.unity"
+    description: "タイトル画面"
+  - name: "GameScene"
+    path: "Assets/Scenes/GameScene.unity"
+    description: "ゲーム画面（別バージョン）"
+
+files:
+  scripts:
+    runtime:
+      - "Assets/Scripts/GameState.cs"
+      - "Assets/Scripts/GameEvents.cs"
+      - "Assets/Scripts/GameManager.cs"
+      - "Assets/Scripts/UIManager.cs"
+      - "Assets/Scripts/BallController.cs"
+      - "Assets/Scripts/PaddleController.cs"
+      - "Assets/Scripts/BrickManager.cs"
+      - "Assets/Scripts/BrickController.cs"
+      - "Assets/Scripts/TitleManager.cs"
+      - "Assets/Scripts/RuntimeFontLoader.cs"
+      - "Assets/Scripts/FontFallbackSetup.cs"
+      - "Assets/Scripts/WallSetup.cs"
+      - "Assets/Scripts/BackgroundSetup.cs"
+
+    editor:
+      - "Assets/Editor/ApplyJapaneseFont.cs"
+      - "Assets/Editor/AutoGenerateJapaneseFont.cs"
+      - "Assets/Editor/CreateJapaneseFontAsset.cs"
+      - "Assets/Editor/JapaneseFontSetup.cs"
+
+  fonts:
+    - path: "Assets/Fonts/meiryo.ttc"
+      description: "日本語フォント（Meiryo）"
+    - path: "Assets/Fonts/Meiryo-Japanese SDF.asset"
+      description: "TMP用日本語フォントアセット（要生成）"
+
+setup:
+  japanese_font:
+    description: "日本語テキスト表示のためのフォント設定"
+    steps:
+      - "Unity メニュー: Tools > Setup Japanese Font (Full Process)"
+      - "ダイアログが表示されたらOKをクリック"
+      - "Ctrl+S でシーンを保存"
+    manual_alternative:
+      - "Window > TextMeshPro > Font Asset Creator を開く"
+      - "Source Font: Assets/Fonts/meiryo.ttc"
+      - "Atlas Resolution: 2048 x 2048"
+      - "Character Set: Custom Characters"
+      - "必要な日本語文字を入力"
+      - "Generate Font Atlas → Save"
+
+tags:
+  required:
+    - name: "Paddle"
+      usage: "パドルオブジェクトに設定"
+    - name: "DeathZone"
+      usage: "画面下のボール落下検知エリア"
+
+physics:
+  ball:
+    component: "Rigidbody2D"
+    settings:
+      gravity_scale: 0
+      linear_damping: 0
+      angular_damping: 0
+      collision_detection: "Continuous"
+      freeze_rotation: true
+    material:
+      bounciness: 1
+      friction: 0
+
+  paddle:
+    component: "Rigidbody2D"
+    settings:
+      body_type: "Kinematic"
+      collision_detection: "Continuous"
+      interpolation: "Interpolate"
+
+  bricks:
+    component: "BoxCollider2D"
+    material:
+      bounciness: 1
+      friction: 0
+
+camera:
+  type: "Orthographic"
+  size: 5
+  position: [0, 0, -10]
+  game_area:
+    width: "約18ユニット (-9 to 9)"
+    height: "約10ユニット (-5 to 5)"
+
+known_issues:
+  - issue: "URP Missing types警告"
+    severity: "Low"
+    impact: "ゲーム動作に影響なし"
+    solution: "無視可能。気になる場合はURPパッケージを更新"
+
+changelog:
+  - date: "2025-12-15"
+    changes:
+      - "WallSetup追加: カメラサイズに合わせた壁の自動配置"
+      - "BackgroundSetup追加: 海をイメージした青背景"
+      - "パドル可動域をカメラサイズに動的対応"
+      - "ボールにTrailRenderer追加（軌跡表示）"
+      - "最小垂直速度保証で水平往復を防止"
+      - "パドル貫通防止チェック強化（FixedUpdate）"
+      - "ブロックサイズ拡大（0.9x0.5）"
+      - "パドルサイズ拡大（3.5x0.5）"
+      - "疎結合設計: SerializeFieldによる依存注入優先"
+      - "コード整理とリファクタリング"
+
+  - date: "2025-12-07"
+    changes:
+      - "Paddleタグ追加（TagManager.asset）"
+      - "パドルのボール貫通問題を修正（Rigidbody2D + MovePosition）"
+      - "画面比率問題を修正（ブロックサイズ・位置調整）"
+      - "日本語フォント対応（Meiryo + エディタツール）"
+      - "GlyphRenderModeコンパイルエラー修正"

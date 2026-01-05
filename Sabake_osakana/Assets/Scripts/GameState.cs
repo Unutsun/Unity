@@ -121,6 +121,32 @@ public class GameState : MonoBehaviour
         Debug.Log($"[GameState] SetTimeLimit: {seconds} seconds");
     }
 
+    /// <summary>
+    /// 切り身を追加（フィーバー魚やパワーアップ用）
+    /// </summary>
+    public void AddKirimi(int amount)
+    {
+        kirimi += amount;
+        Debug.Log($"[GameState] AddKirimi: +{amount}, total={kirimi}");
+        GameEvents.TriggerKirimiChanged(kirimi);
+    }
+
+    /// <summary>
+    /// 破壊ブロック数を追加
+    /// </summary>
+    public void AddDestroyedBricks(int count)
+    {
+        destroyedBricks += count;
+        Debug.Log($"[GameState] AddDestroyedBricks: +{count}, total={destroyedBricks}/{totalBricks}");
+
+        if (destroyedBricks >= totalBricks && totalBricks > 0)
+        {
+            Debug.Log($"[GameState] All bricks destroyed! Game Clear!");
+            SetState(GameStateType.GameClear);
+            GameEvents.TriggerGameClear();
+        }
+    }
+
     public void UpdateTime(float deltaTime)
     {
         if (currentState != GameStateType.Playing) return;

@@ -1,254 +1,412 @@
-# さばけ！おさかな - README
-# Unity ブロック崩しゲーム
-# 最終更新: 2025-12-15
-
+---
 project:
-  name: "さばけ！おさかな"
-  name_en: "Sabake Osakana"
-  type: "2D Breakout Game"
-  engine: "Unity 2022.3+ (URP)"
-  description: |
-    魚の形をしたブロックを崩して「きりみ」を集めるブロック崩しゲーム。
-    制限時間内に魚をさばいて、ランクを目指そう！
+  name: "Sabake_osakana - 魚さばきブロック崩し（Unity版）"
+  description: "HTML5で作成したブロック崩しゲームをUnityで再現するプロジェクト"
+  status: "開発中（演出強化・疎結合リファクタリング完了）"
+  created: 2025-11-29
+  updated: 2025-12-25
 
-gameplay:
-  objective: "魚型のブロックをすべて壊して、できるだけ多くの「きりみ」を獲得する"
-  controls:
-    mouse_touch: "パドルがマウス/タッチ位置に追従"
-    keyboard: "左右矢印キー または A/D キーでパドル移動"
-    launch: "スペースキー または クリック/タップでボール発射"
+# =============================================
+# プロジェクト概要
+# =============================================
+overview:
+  goal: "自然言語の指示だけでUnityゲームを作成する実験"
+  # デバイス1 (元環境)
+  unity_project: "C:\\Users\\user\\Documents\\Unity\\Projects\\Sabake_osakana"
+  unity_project_wsl: "/mnt/c/Users/user/Documents/Unity/Projects/Sabake_osakana"
+  # デバイス2 (新環境)
+  unity_project_alt: "D:\\Unity\\Sabake_osakana"
+  unity_project_wsl_alt: "/mnt/d/Unity/Sabake_osakana"
 
-  mechanics:
-    - "ライフ制（初期5、ボール落下で-1）"
-    - "制限時間90秒"
-    - "ブロック破壊で「きりみ」獲得"
-    - "パドル衝突位置で反射角度が変化"
+# =============================================
+# 現在の状態
+# =============================================
+current_status:
+  working:
+    - "タイトル画面のUI表示（TextMeshPro）"
+    - "ゲームプレイ（ブロック崩し基本動作）"
+    - "魚画像マスク表示（脱衣ブロック崩し方式）"
+    - "画像アルファからブロックパターン自動生成"
+    - "リザルト画面（パーセント基準ランク表示）"
+    - "ゲームオーバー画面"
+    - "ポーズ機能"
+    - "疎結合アーキテクチャ（GameEvents）"
+    - "MCP経由でのUnity操作"
+    - "色設定の一元管理（GameColors.cs）"
+    - "マリオカート風カウントダウン（3,2,1,さばけ！）"
+    - "包丁スプライト（進行方向に回転）"
+    - "包丁軌跡エフェクト（TrailRenderer）"
+    - "紙吹雪パーティクル（全ブロック破壊時）"
+    - "骨背景画像表示（脱衣ブロック崩し方式）"
+    - "画面リサイズ対応（壁の自動再配置）"
 
-  ranks:
-    - name: "おさしみ級"
-      description: "最高ランク - 見事なさばきっぷり！"
-    - name: "たたき級"
-      description: "なかなかの腕前"
-    - name: "にぎり級"
-      description: "まずまずの出来"
-    - name: "あら煮級"
-      description: "もう少しがんばろう"
-    - name: "エサ級"
-      description: "練習あるのみ..."
+  recently_completed:
+    - "カウントダウン演出（CountdownManager.cs）"
+    - "包丁スプライト表示・回転（Twemoji knife.png）"
+    - "リザルトランクをパーセント基準に変更（100%=おさしみ級）"
+    - "全クリア時の紙吹雪パーティクル（ConfettiManager.cs）"
+    - "骨背景画像の読み込み・表示（bone_image.png）"
+    - "リザルトパネルにダークグレー枠線追加"
+    - "画面リサイズ時の壁自動更新"
+    - "包丁リセット時に上向き回転"
+    - "パドル・包丁の初期位置を下方に調整"
 
+  in_progress:
+    - "テストプレイ・動作確認"
+
+# =============================================
+# リソース一覧
+# =============================================
+resources:
+  sprites:
+    - path: "Resources/Sprites/sakana_normal.png"
+      description: "魚画像（通常状態）- ブロックマスク用"
+      size: "1155x1155"
+      usage: "BrickManagerで各ブロックに分割表示"
+      import_settings:
+        isReadable: true
+        spriteMode: 1
+        filterMode: 1
+
+    - path: "Resources/Sprites/knife.png"
+      description: "包丁スプライト（Twemoji U+1F52A）"
+      usage: "BallControllerでボール表示に使用、進行方向に回転"
+      rotation_offset: -50  # Twemoji画像の初期向き補正
+
+    - path: "Resources/Sprites/bone_image.png"
+      description: "骨背景画像（透過PNG）"
+      usage: "BrickManagerでBONE背景として表示（脱衣ブロック崩し方式）"
+
+  fonts:
+    - path: "Resources/Fonts/Meiryo-Japanese SDF.asset"
+      description: "日本語フォント（メイリオ）"
+      usage: "TextMeshPro用"
+
+  ui:
+    - path: "Resources/RoundedButton.png"
+      description: "角丸ボタン用スプライト"
+      usage: "UI Button背景"
+
+  data:
+    - path: "Resources/TextData.csv"
+      description: "UIテキストデータ"
+      format: "CSV (category,key,subkey,text)"
+      usage: "TextDataManagerで読み込み"
+
+    - path: "Resources/StageData.csv"
+      description: "ステージ設定データ（予定）"
+      format: "CSV"
+      status: "未作成"
+
+  shaders:
+    - path: "Assets/Shaders/BrickClipShader.shader"
+      description: "ブロッククリップ用シェーダー（現在未使用）"
+      note: "Sprite.Createで代替実装済み"
+
+# =============================================
+# アーキテクチャ（疎結合設計）
+# =============================================
 architecture:
-  pattern: "イベント駆動 + シングルトン"
+  design_pattern: "イベント駆動アーキテクチャ"
+  description: |
+    各コンポーネントはGameEventsを通じて通信し、直接参照を持たない疎結合設計。
 
-  design_principles:
-    - name: "疎結合"
-      description: "GameEventsを介したイベント駆動通信でコンポーネント間の依存を最小化"
-    - name: "SerializeFieldによる依存注入"
-      description: "Find()よりSerializeFieldを優先し、Inspector上で参照を設定"
-    - name: "フォールバック検索"
-      description: "SerializeField未設定時のみFind()で自動検索"
-    - name: "単一責任"
-      description: "各スクリプトは特定の機能のみを担当"
-
-  core_scripts:
-    GameState.cs:
-      role: "ゲーム状態管理（シングルトン）"
-      manages: ["CurrentState", "Lives", "Kirimi", "RemainingTime"]
-      states: ["Ready", "Playing", "Paused", "GameOver", "GameClear"]
-
+  scripts:
     GameEvents.cs:
       role: "イベントハブ（静的クラス）"
       events:
-        - "OnBrickDestroyed - ブロック破壊時"
-        - "OnKirimiChanged - きりみ数変更時"
-        - "OnLivesChanged - ライフ変更時"
-        - "OnBallLost - ボール落下時"
-        - "OnBallReset - ボールリセット時"
-        - "OnGameClear - ゲームクリア時"
-        - "OnGameOver - ゲームオーバー時"
-        - "OnGameRestart - リスタート時"
+        - "OnGameStart, OnGameOver, OnGameClear, OnGameRestart"
+        - "OnBallLaunched, OnBallLost, OnBallReset"
+        - "OnBrickDestroyed(int), OnKirimiChanged(int), OnLivesChanged(int)"
+        - "OnTimeChanged(float), OnTimeUp"
+        - "OnGamePause, OnGameResume, OnReturnToTitle"
+
+    GameState.cs:
+      role: "状態管理シングルトン"
+      states: ["Title", "Countdown", "Ready", "Playing", "Paused", "GameOver", "GameClear"]
+      properties:
+        - "Kirimi: int - スコア（切り身数）"
+        - "Lives: int - 残機（デフォルト5）"
+        - "RemainingTime: float - 残り時間"
 
     GameManager.cs:
-      role: "ゲーム進行制御"
-      responsibilities: ["タイマー管理", "ライフ管理", "ゲーム終了判定"]
-
-  game_objects:
-    BallController.cs:
-      role: "ボールの動き制御"
+      role: "ゲーム進行管理"
       features:
-        - "Rigidbody2D + Physics Material 2D (bounciness=1, friction=0)"
-        - "発射前はパドルに追従"
-        - "パドル衝突位置で反射角度変化（左端150°〜右端30°）"
-        - "速度を常に一定に維持"
-        - "TrailRendererによる軌跡表示"
-        - "最小垂直速度保証（水平往復防止）"
-        - "パドル貫通防止チェック（FixedUpdate）"
+        - "タイマー更新"
+        - "ポーズ機能"
+        - "シーン遷移"
+        - "背景色設定"
 
-    PaddleController.cs:
-      role: "パドル操作制御"
-      features:
-        - "Rigidbody2D (Kinematic) + Continuous collision detection"
-        - "MovePosition()で物理的に正しい移動"
-        - "マウス/タッチ + キーボード入力対応"
-        - "カメラサイズに合わせた動的移動範囲設定"
-        - "自動コライダー設定"
+    GameColors.cs:
+      role: "色設定の一元管理（静的クラス）"
+      colors:
+        Background: "(0.8, 0.8, 0.8) - ゲーム背景（ライトグレー）"
+        PanelBackground: "(0.8, 0.8, 0.8) - パネル背景"
+        ButtonBackground: "(0.8, 0.8, 0.8) - ボタン背景"
+        ButtonBorder: "(0.6, 0.6, 0.6) - ボタン枠線"
+        TextBlack: "(0.1, 0.1, 0.1) - 通常テキスト"
+        TextRed: "(0.9, 0.2, 0.2) - 強調テキスト"
+        TextWhite: "白 - HUDテキスト"
+        FishBody: "(1, 0.6, 0.6) - 魚の身（フォールバック）"
+        FishBelly: "(1, 0.85, 0.85) - 魚の腹（フォールバック）"
+        BoneBackground: "(0.8, 0.8, 0.8) - 骨背景"
 
     BrickManager.cs:
       role: "ブロック生成・管理"
       features:
-        - "魚型パターン配列 (13行×17列)"
-        - "身と腹で色分け（薄赤/白）"
-        - "骨の背景表示"
+        - "魚画像テクスチャ読み込み"
+        - "画像アルファからブロックパターン自動生成"
+        - "各ブロックに画像の対応部分をSprite.Createで表示"
+        - "画像アスペクト比に合わせてブロックサイズ自動調整"
+        - "骨背景（BONE）生成"
+      settings:
+        brickWidth: 0.9
+        autoCenter: true
+        autoAdjustToImage: true
+        alphaThreshold: 0.3
+
+    UIManager.cs:
+      role: "UI制御"
+      features:
+        - "HUD更新（ライフ、タイマー、きりみ）"
+        - "リザルト/ゲームオーバー/ポーズパネル表示"
+        - "パネル・ボタンへのGameColors適用"
+        - "自動UI参照機能"
+
+    TextDataManager.cs:
+      role: "テキストデータ管理"
+      source: "Resources/TextData.csv"
+
+    BallController.cs:
+      role: "ボール（包丁）制御"
+      features:
+        - "包丁スプライト表示（子オブジェクトKnifeVisual）"
+        - "進行方向に合わせた包丁回転（UpdateKnifeRotation）"
+        - "軌跡エフェクト（TrailRenderer）"
+        - "リセット時に上向き回転"
+        - "画面外検知（CheckOutOfBounds）"
+
+    PaddleController.cs:
+      role: "パドル操作"
+      features:
+        - "マウス/タッチ/キーボード入力"
+        - "画面サイズに応じた可動域自動設定"
+        - "初期位置の自動設定（画面下端からのオフセット）"
 
     BrickController.cs:
       role: "個別ブロック制御"
+
+    CountdownManager.cs:
+      role: "カウントダウン演出"
       features:
-        - "衝突時に破壊"
-        - "イベント発火（OnBrickDestroyed）"
+        - "3（黄）→ 2（オレンジ）→ 1（赤）→ さばけ！（赤）"
+        - "スケールアニメーション（大→通常）"
+        - "白フチ付きテキスト"
+
+    ConfettiManager.cs:
+      role: "紙吹雪パーティクル"
+      features:
+        - "全ブロック破壊時に発動"
+        - "Unicode四角絵文字の色を使用"
+        - "ランダムな落下・揺れ・回転"
 
     WallSetup.cs:
       role: "壁の自動配置"
       features:
-        - "カメラサイズに合わせた壁位置計算"
-        - "左右上下の壁を画面端に配置"
-        - "Physics Material 2D自動設定"
-        - "下壁はTriggerでボール落下検知"
+        - "カメラサイズに合わせた壁位置・サイズ設定"
+        - "画面リサイズ検知・壁再配置"
 
     BackgroundSetup.cs:
       role: "背景設定"
-      features:
-        - "カメラ背景色を設定"
-        - "海をイメージした青系カラー"
+      note: "GameColors.Backgroundを使用"
 
-  ui:
-    UIManager.cs:
-      role: "UI全体管理（シングルトン）"
-      elements:
-        - "HUD: ライフ(♥), タイマー, きりみ数"
-        - "ResultPanel: クリア画面"
-        - "GameOverPanel: ゲームオーバー画面"
-        - "PausePanel: ポーズ画面"
-        - "ReadyMessage: 発射待ちメッセージ"
-
+# =============================================
+# シーン構成
+# =============================================
 scenes:
-  - name: "SampleScene"
-    path: "Assets/Scenes/SampleScene.unity"
-    description: "メインゲームシーン"
-  - name: "TitleScene"
+  TitleScene:
     path: "Assets/Scenes/TitleScene.unity"
-    description: "タイトル画面"
-  - name: "GameScene"
-    path: "Assets/Scenes/GameScene.unity"
-    description: "ゲーム画面（別バージョン）"
+    status: "動作OK"
+    objects:
+      - "Main Camera"
+      - "TitleCanvas (Canvas + TitleManager)"
+      - "  └ TitleText (TextMeshProUGUI)"
+      - "  └ StartButton (Button)"
+      - "EventSystem"
 
-files:
-  scripts:
-    runtime:
-      - "Assets/Scripts/GameState.cs"
-      - "Assets/Scripts/GameEvents.cs"
-      - "Assets/Scripts/GameManager.cs"
-      - "Assets/Scripts/UIManager.cs"
-      - "Assets/Scripts/BallController.cs"
-      - "Assets/Scripts/PaddleController.cs"
-      - "Assets/Scripts/BrickManager.cs"
-      - "Assets/Scripts/BrickController.cs"
-      - "Assets/Scripts/TitleManager.cs"
-      - "Assets/Scripts/RuntimeFontLoader.cs"
-      - "Assets/Scripts/FontFallbackSetup.cs"
-      - "Assets/Scripts/WallSetup.cs"
-      - "Assets/Scripts/BackgroundSetup.cs"
+  SampleScene:
+    path: "Assets/Scenes/SampleScene.unity"
+    status: "動作OK"
+    objects:
+      - "GameManager (GameManager + GameState + BrickManager)"
+      - "Paddle (PaddleController)"
+      - "Ball (BallController)"
+      - "Walls (Left/Right/Top/Bottom)"
+      - "GameCanvas (Canvas + UIManager)"
+      - "  └ HUD (LivesText, TimerText, KirimiText, PauseButton)"
+      - "  └ ResultPanel"
+      - "  └ GameOverPanel"
+      - "  └ PausePanel"
 
-    editor:
-      - "Assets/Editor/ApplyJapaneseFont.cs"
-      - "Assets/Editor/AutoGenerateJapaneseFont.cs"
-      - "Assets/Editor/CreateJapaneseFontAsset.cs"
-      - "Assets/Editor/JapaneseFontSetup.cs"
+  ResultScene:
+    path: "Assets/Scenes/ResultScene.unity"
+    status: "未確認"
 
-  fonts:
-    - path: "Assets/Fonts/meiryo.ttc"
-      description: "日本語フォント（Meiryo）"
-    - path: "Assets/Fonts/Meiryo-Japanese SDF.asset"
-      description: "TMP用日本語フォントアセット（要生成）"
+# =============================================
+# ステージデータ構造（設計）
+# =============================================
+stage_data_design:
+  description: |
+    魚画像とブロック配置パターンをステージごとに外部データ化。
+    CSVまたはScriptableObjectで管理し、BrickManagerが読み込む。
 
-setup:
-  japanese_font:
-    description: "日本語テキスト表示のためのフォント設定"
-    steps:
-      - "Unity メニュー: Tools > Setup Japanese Font (Full Process)"
-      - "ダイアログが表示されたらOKをクリック"
-      - "Ctrl+S でシーンを保存"
-    manual_alternative:
-      - "Window > TextMeshPro > Font Asset Creator を開く"
-      - "Source Font: Assets/Fonts/meiryo.ttc"
-      - "Atlas Resolution: 2048 x 2048"
-      - "Character Set: Custom Characters"
-      - "必要な日本語文字を入力"
-      - "Generate Font Atlas → Save"
+  csv_format:
+    file: "Resources/StageData.csv"
+    columns:
+      - "stage_id: ステージID"
+      - "stage_name: ステージ名"
+      - "fish_image: 魚画像パス（Resources相対）"
+      - "grid_cols: グリッド列数"
+      - "grid_rows: グリッド行数"
+      - "brick_width: ブロック幅"
+      - "time_limit: 制限時間（秒）"
+      - "bonus_multiplier: スコア倍率"
 
-tags:
-  required:
-    - name: "Paddle"
-      usage: "パドルオブジェクトに設定"
-    - name: "DeathZone"
-      usage: "画面下のボール落下検知エリア"
+  example_data:
+    - stage_id: 1
+      stage_name: "アジ"
+      fish_image: "Sprites/sakana_normal"
+      grid_cols: 17
+      grid_rows: 13
+      brick_width: 0.9
+      time_limit: 90
 
-physics:
-  ball:
-    component: "Rigidbody2D"
-    settings:
-      gravity_scale: 0
-      linear_damping: 0
-      angular_damping: 0
-      collision_detection: "Continuous"
-      freeze_rotation: true
-    material:
-      bounciness: 1
-      friction: 0
+    - stage_id: 2
+      stage_name: "サバ"
+      fish_image: "Sprites/sakana_saba"
+      grid_cols: 20
+      grid_rows: 10
+      brick_width: 0.8
+      time_limit: 120
 
-  paddle:
-    component: "Rigidbody2D"
-    settings:
-      body_type: "Kinematic"
-      collision_detection: "Continuous"
-      interpolation: "Interpolate"
+  implementation:
+    StageData.cs: "ステージデータクラス"
+    StageDataManager.cs: "CSVからステージデータを読み込むマネージャー"
+    BrickManager_changes: "LoadStage(int stageId)メソッド追加"
 
-  bricks:
-    component: "BoxCollider2D"
-    material:
-      bounciness: 1
-      friction: 0
+# =============================================
+# MCP Unity できること・できないこと
+# =============================================
+mcp_capabilities:
+  can_do:
+    - "GameObjectの作成・選択・更新"
+    - "Componentの追加・更新（プロパティ設定含む）"
+    - "メニューアイテムの実行（File/Save, Edit/Play等）"
+    - "シーンの作成・読み込み・保存"
+    - "Prefabの作成"
+    - "コンソールログの取得・送信"
+    - "スクリプトのリコンパイル"
+    - "テストの実行"
+    - "アセットをシーンに追加"
+    - "RectTransform, TextMeshProUGUI等のUI設定"
+    - "Outline等のUIコンポーネントの色設定"
 
-camera:
-  type: "Orthographic"
-  size: 5
-  position: [0, 0, -10]
-  game_area:
-    width: "約18ユニット (-9 to 9)"
-    height: "約10ユニット (-5 to 5)"
+  cannot_do:
+    - "ダイアログのボタンクリック（Import TMP Resources等）"
+    - "Preferences画面の直接操作"
+    - "Build Settings画面の直接操作"
+    - "Playモード中のゲーム操作"
 
-known_issues:
-  - issue: "URP Missing types警告"
-    severity: "Low"
-    impact: "ゲーム動作に影響なし"
-    solution: "無視可能。気になる場合はURPパッケージを更新"
+# =============================================
+# 技術メモ
+# =============================================
+technical_notes:
+  unity_version: "6000.0.63f1"
+  render_pipeline: "Built-in 2D"
 
-changelog:
-  - date: "2025-12-15"
-    changes:
-      - "WallSetup追加: カメラサイズに合わせた壁の自動配置"
-      - "BackgroundSetup追加: 海をイメージした青背景"
-      - "パドル可動域をカメラサイズに動的対応"
-      - "ボールにTrailRenderer追加（軌跡表示）"
-      - "最小垂直速度保証で水平往復を防止"
-      - "パドル貫通防止チェック強化（FixedUpdate）"
-      - "ブロックサイズ拡大（0.9x0.5）"
-      - "パドルサイズ拡大（3.5x0.5）"
-      - "疎結合設計: SerializeFieldによる依存注入優先"
-      - "コード整理とリファクタリング"
+  brick_image_masking:
+    description: "脱衣ブロック崩し方式の画像マスキング"
+    method: |
+      1. Resources.Load<Texture2D>で魚画像を読み込む
+      2. 画像サイズとグリッドから各ブロックのピクセル範囲を計算
+      3. Sprite.Create(texture, rect, pivot, pixelsPerUnit)で部分スプライト作成
+      4. 各ブロックのSpriteRendererに設定
+    alpha_detection: |
+      1. 各グリッドセルの複数ポイントでアルファ値をサンプリング
+      2. 平均アルファ > 0.3 ならブロック配置
+      3. これにより透明部分にはブロックが生成されない
 
-  - date: "2025-12-07"
-    changes:
-      - "Paddleタグ追加（TagManager.asset）"
-      - "パドルのボール貫通問題を修正（Rigidbody2D + MovePosition）"
-      - "画面比率問題を修正（ブロックサイズ・位置調整）"
-      - "日本語フォント対応（Meiryo + エディタツール）"
-      - "GlyphRenderModeコンパイルエラー修正"
+# =============================================
+# 作業ログ
+# =============================================
+work_log:
+  - date: 2025-11-29
+    action: "プロジェクト仕様書作成"
+
+  - date: 2025-11-30
+    action: "基本機能実装"
+
+  - date: 2025-12-07
+    action: "疎結合リファクタリング"
+    result: "GameEvents/GameState実装完了"
+
+  - date: 2025-12-07
+    action: "Gemini設計仕様対応（さばけ！おさかな v2.0）"
+    result: "魚型ブロック配置、きりみスコア、ランクシステム実装"
+
+  - date: 2025-12-13
+    action: "Start Gameボタン問題修正"
+
+  - date: 2025-12-23
+    action: "リザルト画面修正・色設定実装"
+    result:
+      - "GameColors.cs作成（色の一元管理）"
+      - "リザルト画面のランク表示修正"
+      - "UIManager.csにApplyPanelColors/ApplyButtonStyle追加"
+
+  - date: 2025-12-24
+    action: "魚画像マスク実装"
+    result:
+      - "sakana_normal.pngをResources/Sprites/に配置"
+      - "BrickManager.csで画像を各ブロックにクリッピング表示"
+      - "画像アルファからブロックパターン自動生成"
+      - "画像アスペクト比に合わせたブロックサイズ自動調整"
+      - "背景色をライトグレー(0.8)に統一"
+      - "ボタン枠線をライトグレー(0.6)に変更"
+
+  - date: 2025-12-24
+    action: "ステージデータ外部化（進行中）"
+    tasks:
+      - "StageData.cs作成"
+      - "StageData.csv作成"
+      - "BrickManager修正"
+
+  - date: 2025-12-25
+    action: "演出強化・UIフィードバック改善"
+    result:
+      - "マリオカート風カウントダウン実装（CountdownManager.cs）"
+      - "包丁スプライト表示・進行方向回転（BallController改修）"
+      - "軌跡エフェクト2倍拡大"
+      - "リザルトランクをパーセント基準に変更"
+      - "全クリア時の紙吹雪パーティクル（ConfettiManager.cs）"
+      - "骨背景画像表示（bone_image.png）"
+      - "リザルトパネルに枠線追加"
+      - "画面リサイズ対応（WallSetup改修）"
+      - "包丁リセット時の上向き回転"
+      - "パドル・包丁の初期位置を下方に調整"
+
+# =============================================
+# 次回作業時の手順
+# =============================================
+next_actions:
+  immediate:
+    - "Unityでテストプレイして動作確認"
+    - "ゲームバランス調整（制限時間、ボール速度等）"
+    - "新しい魚画像（サバ、タイ等）の追加"
+
+  future:
+    - "複数ステージのゲームフロー実装"
+    - "ステージ選択画面作成"
+    - "魚ごとの難易度調整"
+    - "効果音・BGM追加"
+    - "スコアランキング機能"

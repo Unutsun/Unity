@@ -26,6 +26,14 @@ public class GameManager : MonoBehaviour
                 GameObject obj = new GameObject("GameData");
                 obj.AddComponent<GameData>();
             }
+
+            // FeverManagerが存在しなければ作成
+            if (FindFirstObjectByType<FeverManager>() == null)
+            {
+                GameObject feverObj = new GameObject("FeverManager");
+                feverObj.AddComponent<FeverManager>();
+                Debug.Log("[GameManager] FeverManager created");
+            }
         }
         else
         {
@@ -136,10 +144,11 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// ゲームオーバー時の処理
+    /// UIManagerがGameOverPanelを表示するため、シーン遷移は不要
     /// </summary>
     void OnGameOver()
     {
-        Debug.Log("[GameManager] OnGameOver: Saving data and going to ResultScene");
+        Debug.Log("[GameManager] OnGameOver: Saving data (UIManager will show GameOverPanel)");
 
         if (GameState.Instance != null && GameData.Instance != null)
         {
@@ -154,29 +163,7 @@ public class GameManager : MonoBehaviour
             );
         }
 
-        StartCoroutine(GoToResultDelayed(2f));  // 2秒後に遷移
-    }
-
-    /// <summary>
-    /// ResultSceneへ遅延遷移
-    /// </summary>
-    IEnumerator GoToResultDelayed(float delay)
-    {
-        Debug.Log($"[GameManager] GoToResultDelayed: Waiting {delay} seconds...");
-        Time.timeScale = 1f;  // 遅延中はtimeScaleを戻す
-        yield return new WaitForSeconds(delay);
-        Debug.Log("[GameManager] GoToResult: Loading ResultScene");
-        SceneManager.LoadScene("ResultScene");
-    }
-
-    /// <summary>
-    /// ResultSceneへ即時遷移（必要な場合用）
-    /// </summary>
-    void GoToResult()
-    {
-        Debug.Log("[GameManager] GoToResult: Loading ResultScene");
-        Time.timeScale = 1f;
-        SceneManager.LoadScene("ResultScene");
+        // UIManagerがOnGameOverイベントでGameOverPanelを表示するため、シーン遷移は不要
     }
 
     /// <summary>

@@ -22,6 +22,10 @@ public class BrickManager : MonoBehaviour
     [Header("Stage Settings")]
     public int stageId = 1;  // 現在のステージID（Inspector設定可能）
 
+    [Header("Power-Up Settings")]
+    public int minPowerUps = 4;
+    public int maxPowerUps = 10;
+
     // ステージデータから読み込む値
     private float brickWidth = 0.9f;
     private float brickHeight = 0.9f;
@@ -38,6 +42,10 @@ public class BrickManager : MonoBehaviour
 
     // 魚の形状パターン（動的に生成）
     private int[,] fishPattern;
+
+    // ブロックをグリッド位置で追跡
+    private GameObject[,] brickGrid;
+    private GameObject powerUpsParent;
 
     void Awake()
     {
@@ -67,6 +75,7 @@ public class BrickManager : MonoBehaviour
         CalculateStartPosition();
         CreateBoneBackground();
         CreateFishBricks();
+        SpawnPowerUps();
     }
 
     /// <summary>
@@ -109,6 +118,7 @@ public class BrickManager : MonoBehaviour
     void InitializePattern()
     {
         fishPattern = new int[gridRows, gridCols];
+        brickGrid = new GameObject[gridRows, gridCols];
         // 初期値は全て0（画像アルファから生成される）
         Debug.Log($"[BrickManager] InitializePattern: Created {gridCols}x{gridRows} pattern array");
     }
@@ -389,6 +399,9 @@ public class BrickManager : MonoBehaviour
                     brick.transform.parent = bricksParent.transform;
                     brick.transform.localScale = new Vector3(brickWidth, brickHeight, 1);
 
+                    // グリッドに登録
+                    brickGrid[row, col] = brick;
+
                     SpriteRenderer sr = brick.GetComponent<SpriteRenderer>();
                     if (sr != null && fishTexture != null)
                     {
@@ -430,6 +443,13 @@ public class BrickManager : MonoBehaviour
     void RebuildBricks()
     {
         Debug.Log($"[BrickManager] RebuildBricks: Rebuilding all bricks");
+
+        // パワーアップも削除
+        if (powerUpsParent != null)
+        {
+            Destroy(powerUpsParent);
+        }
+
         LoadStageData();
         InitializePattern();
         LoadFishTexture();
@@ -437,5 +457,147 @@ public class BrickManager : MonoBehaviour
         CalculateStartPosition();
         CreateBoneBackground();
         CreateFishBricks();
+        SpawnPowerUps();
+    }
+
+    /// <summary>
+    /// ランダムな空き位置にパワーアップアイテムを配置
+    /// ブロックの端から2マス以上離れた位置にのみ配置
+    /// </summary>
+    void SpawnPowerUps()
+    {
+        if (powerUpsParent != null)
+        {
+            Destroy(powerUpsParent);
+        }
+        powerUpsParent = new GameObject("PowerUps");
+
+        // 空きマス（ブロックがない＆ブロックから2マス以上離れている位置）を収集
+        System.Collections.Generic.List<Vector2Int> emptyPositions = new System.Collections.Generic.List<Vector2Int>();
+
+        for (int row = 0; row < gridRows; row++)
+        {
+            for (int col = 0; col < gridCols; col++)
+            {
+                // ブロックがない位置のみ
+                if (fishPattern[row, col] == 0)
+                {
+                    // 周囲2マス以内にブロックがあるかチェック
+                    if (!HasBrickNearby(row, col, 2))
+                    {
+                        emptyPositions.Add(new Vector2Int(row, col));
+                    }
+                }
+            }
+        }
+
+        // ランダムに4〜10個配置
+        int numPowerUps = Random.Range(minPowerUps, maxPowerUps + 1);
+        numPowerUps = Mathf.Min(numPowerUps, emptyPositions.Count);
+
+        // シャッフルして先頭から選択
+        for (int i = emptyPositions.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            Vector2Int temp = emptyPositions[i];
+            emptyPositions[i] = emptyPositions[j];
+            emptyPositions[j] = temp;
+        }
+
+        for (int i = 0; i < numPowerUps; i++)
+        {
+            Vector2Int pos = emptyPositions[i];
+            int row = pos.x;
+            int col = pos.y;
+
+            float x = calculatedStartPos.x + col * (brickWidth + spacing);
+            float y = calculatedStartPos.y - row * (brickHeight + spacing);
+
+            GameObject powerUp = new GameObject($"PowerUp_{row}_{col}");
+            powerUp.transform.position = new Vector3(x, y, 0);
+            powerUp.transform.localScale = new Vector3(brickWidth * 0.8f, brickHeight * 0.8f, 1);
+            powerUp.transform.parent = powerUpsParent.transform;
+
+            PowerUpItem item = powerUp.AddComponent<PowerUpItem>();
+            item.gridRow = row;
+            item.gridCol = col;
+            item.brickManager = this;
+        }
+
+        Debug.Log($"[BrickManager] SpawnPowerUps: Spawned {numPowerUps} power-ups");
+    }
+
+    /// <summary>
+    /// 指定位置の周囲4マス（上下左右）のブロックを破壊
+    /// </summary>
+    public void DestroyBricksAround(int row, int col)
+    {
+        int destroyed = 0;
+
+        // 上下左右の4方向
+        int[,] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+
+        for (int d = 0; d < 4; d++)
+        {
+            int newRow = row + directions[d, 0];
+            int newCol = col + directions[d, 1];
+
+            // 範囲チェック
+            if (newRow >= 0 && newRow < gridRows && newCol >= 0 && newCol < gridCols)
+            {
+                GameObject brick = brickGrid[newRow, newCol];
+                if (brick != null)
+                {
+                    // ブロックを破壊
+                    Destroy(brick);
+                    brickGrid[newRow, newCol] = null;
+                    destroyed++;
+
+                    // スコア更新
+                    if (GameState.Instance != null)
+                    {
+                        GameState.Instance.AddKirimi(1);
+                        GameState.Instance.AddDestroyedBricks(1);
+                    }
+
+                    // イベント発火
+                    GameEvents.TriggerBrickDestroyed(1);
+                }
+            }
+        }
+
+        Debug.Log($"[BrickManager] DestroyBricksAround: Destroyed {destroyed} bricks around ({row}, {col})");
+    }
+
+    /// <summary>
+    /// 指定位置の周囲にブロックがあるかチェック
+    /// </summary>
+    /// <param name="row">行</param>
+    /// <param name="col">列</param>
+    /// <param name="distance">チェックする距離（マス数）</param>
+    /// <returns>周囲にブロックがあればtrue</returns>
+    bool HasBrickNearby(int row, int col, int distance)
+    {
+        for (int dr = -distance; dr <= distance; dr++)
+        {
+            for (int dc = -distance; dc <= distance; dc++)
+            {
+                int checkRow = row + dr;
+                int checkCol = col + dc;
+
+                // 範囲外はスキップ
+                if (checkRow < 0 || checkRow >= gridRows || checkCol < 0 || checkCol >= gridCols)
+                    continue;
+
+                // 自分自身はスキップ
+                if (dr == 0 && dc == 0)
+                    continue;
+
+                // ブロックがあればtrue
+                if (fishPattern[checkRow, checkCol] == 1)
+                    return true;
+            }
+        }
+        return false;
     }
 }

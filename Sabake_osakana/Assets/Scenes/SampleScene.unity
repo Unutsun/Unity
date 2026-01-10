@@ -542,7 +542,6 @@ GameObject:
   - component: {fileID: 340074252}
   - component: {fileID: 340074256}
   - component: {fileID: 340074255}
-  - component: {fileID: 340074257}
   - component: {fileID: 340074258}
   m_Layer: 0
   m_Name: GameManager
@@ -598,6 +597,8 @@ MonoBehaviour:
   fishBodyColor: {r: 1, g: 0.6, b: 0.6, a: 1}
   fishBellyColor: {r: 1, g: 0.85, b: 0.85, a: 1}
   stageId: 1
+  minPowerUps: 4
+  maxPowerUps: 10
 --- !u!114 &340074256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -618,23 +619,6 @@ MonoBehaviour:
   destroyedBricks: 0
   initialLives: 5
   timeLimit: 90
---- !u!114 &340074257
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 340074251}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c3140ca041292149a0897b26a1c7779, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  leftWall: {fileID: 0}
-  rightWall: {fileID: 0}
-  topWall: {fileID: 0}
-  bottomWall: {fileID: 0}
-  wallThickness: 1
 --- !u!114 &340074258
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1502,7 +1486,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -5136904655973528643, guid: e6857aedfb3741a478b44597a047dccb, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2989,7 +2973,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db7763937d5801a45b4774bb9dbe0a7c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   speed: 12
   paddle: {fileID: 0}
 --- !u!50 &1181393923
@@ -3774,6 +3758,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1495983805}
+  - component: {fileID: 1495983806}
   m_Layer: 0
   m_Name: Walls
   m_TagString: Untagged
@@ -3800,6 +3785,26 @@ Transform:
   - {fileID: 2054287584}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1495983806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1495983804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c3140ca041292149a0897b26a1c7779, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WallSetup
+  leftWall: {fileID: 0}
+  rightWall: {fileID: 0}
+  topWall: {fileID: 0}
+  bottomWall: {fileID: 0}
+  wallThickness: 0.15
+  leftMargin: 6.5
+  rightMargin: 6.5
+  showVisibleWalls: 1
 --- !u!1 &1620061157
 GameObject:
   m_ObjectHideFlags: 0
@@ -4086,7 +4091,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -7, z: 0}
-  m_LocalScale: {x: 4.0, y: 0.3, z: 1}
+  m_LocalScale: {x: 4, y: 0.3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

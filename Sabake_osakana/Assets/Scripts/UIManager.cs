@@ -44,8 +44,40 @@ public class UIManager : MonoBehaviour
     [Header("Ready Message")]
     public TextMeshProUGUI readyMessageText;
 
+    // マルチボールゲージUI（円形）
+    private GameObject multiBallGaugeContainer;
+    private Image multiBallGaugeFill;
+    private const int GAUGE_MAX = 10;
+
     // テキストデータ参照用
     private TextDataManager textManager => TextDataManager.Instance;
+
+    // レイアウトデータ参照用
+    private UILayoutManager layoutManager => UILayoutManager.Instance;
+
+    /// <summary>
+    /// RectTransformにレイアウトを適用（UILayoutManager経由）
+    /// </summary>
+    bool ApplyLayout(RectTransform rt, string elementName)
+    {
+        if (layoutManager != null && layoutManager.IsLoaded)
+        {
+            return layoutManager.ApplyLayout(rt, elementName);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// レイアウトデータを取得（UILayoutManager経由）
+    /// </summary>
+    UILayoutData GetLayoutData(string elementName)
+    {
+        if (layoutManager != null && layoutManager.IsLoaded)
+        {
+            return layoutManager.GetLayout(elementName);
+        }
+        return null;
+    }
 
     void Awake()
     {
@@ -170,6 +202,7 @@ public class UIManager : MonoBehaviour
         GameEvents.OnGameResume += HidePausePanel;
         GameEvents.OnBallReset += ShowReadyMessage;
         GameEvents.OnBallLaunched += HideReadyMessage;
+        GameEvents.OnMultiBallGaugeChanged += UpdateMultiBallGauge;
     }
 
     void OnDisable()
@@ -183,6 +216,7 @@ public class UIManager : MonoBehaviour
         GameEvents.OnGameResume -= HidePausePanel;
         GameEvents.OnBallReset -= ShowReadyMessage;
         GameEvents.OnBallLaunched -= HideReadyMessage;
+        GameEvents.OnMultiBallGaugeChanged -= UpdateMultiBallGauge;
     }
 
     void Start()
@@ -307,6 +341,25 @@ public class UIManager : MonoBehaviour
 
     void InitializeHUD()
     {
+        // きりみ表示をライフの下（左上）に移動
+        if (kirimiText != null)
+        {
+            RectTransform rt = kirimiText.GetComponent<RectTransform>();
+            // レイアウトデータから取得（なければフォールバック）
+            if (!ApplyLayout(rt, "KirimiText"))
+            {
+                rt.anchorMin = new Vector2(0, 1);
+                rt.anchorMax = new Vector2(0, 1);
+                rt.pivot = new Vector2(0, 1);
+                rt.anchoredPosition = new Vector2(20, -60);
+                rt.sizeDelta = new Vector2(250, 40);
+            }
+            kirimiText.alignment = TextAlignmentOptions.Left;
+        }
+
+        // マルチボールゲージUIを作成
+        CreateMultiBallGaugeUI();
+
         if (GameState.Instance != null)
         {
             UpdateKirimiDisplay(GameState.Instance.Kirimi);
@@ -319,6 +372,9 @@ public class UIManager : MonoBehaviour
             UpdateLivesDisplay(5);
             UpdateTimerDisplay(90f);
         }
+
+        // ゲージ初期化
+        UpdateMultiBallGauge(0);
     }
 
     void SetupButtonListeners()
@@ -388,7 +444,7 @@ public class UIManager : MonoBehaviour
     {
         if (livesText != null)
         {
-            // 仕様書フォーマット: 「ライフ: ♥♥♥♥♥」（赤ハート + グレーハート）
+            // ハートのみ表示（ライフ：を削除）
             string redHeart = $"<color=#{ColorUtility.ToHtmlStringRGB(GameColors.TextRed)}>♥</color>";
             string grayHeart = $"<color=#{ColorUtility.ToHtmlStringRGB(GameColors.HeartEmpty)}>♥</color>";
 
@@ -396,8 +452,9 @@ public class UIManager : MonoBehaviour
             for (int i = 0; i < lives; i++) hearts += redHeart;
             for (int i = lives; i < 5; i++) hearts += grayHeart;
 
-            livesText.text = $"ライフ: {hearts}";
+            livesText.text = hearts;
             livesText.color = GameColors.TextHUD;
+            livesText.alignment = TextAlignmentOptions.Left;
         }
     }
 
@@ -414,16 +471,215 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // ========== マルチボールゲージ（円形） ==========
+
+    void CreateMultiBallGaugeUI()
+    {
+        GameObject canvas = GameObject.Find("GameCanvas");
+        if (canvas == null) return;
+
+        // レイアウトデータから取得（なければデフォルト値）
+        UILayoutData layout = GetLayoutData("MultiBallGauge");
+        float gaugeSize = layout?.width ?? 60f;
+        Vector2 position = layout?.Position ?? new Vector2(50, -130);
+
+        // コンテナ作成（きりみの下に配置）
+        multiBallGaugeContainer = new GameObject("MultiBallGauge");
+        multiBallGaugeContainer.transform.SetParent(canvas.transform, false);
+
+        RectTransform containerRect = multiBallGaugeContainer.AddComponent<RectTransform>();
+        if (layout != null)
+        {
+            containerRect.anchorMin = layout.AnchorMin;
+            containerRect.anchorMax = layout.AnchorMax;
+            containerRect.pivot = layout.Pivot;
+            containerRect.anchoredPosition = layout.Position;
+            containerRect.sizeDelta = layout.Size;
+        }
+        else
+        {
+            containerRect.anchorMin = new Vector2(0, 1);
+            containerRect.anchorMax = new Vector2(0, 1);
+            containerRect.pivot = new Vector2(0.5f, 0.5f);
+            containerRect.anchoredPosition = position;
+            containerRect.sizeDelta = new Vector2(gaugeSize, gaugeSize);
+        }
+
+        // 背景リング（グレー・常に表示）
+        GameObject bgRingObj = new GameObject("GaugeBGRing");
+        bgRingObj.transform.SetParent(multiBallGaugeContainer.transform, false);
+
+        RectTransform bgRingRect = bgRingObj.AddComponent<RectTransform>();
+        bgRingRect.anchorMin = Vector2.zero;
+        bgRingRect.anchorMax = Vector2.one;
+        bgRingRect.offsetMin = Vector2.zero;
+        bgRingRect.offsetMax = Vector2.zero;
+
+        Image bgRingImage = bgRingObj.AddComponent<Image>();
+        bgRingImage.sprite = CreateRingSprite(64, 8);
+        bgRingImage.color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+        bgRingImage.type = Image.Type.Simple;
+        bgRingImage.preserveAspect = true;
+
+        // 円形ゲージ（Filled Image）
+        GameObject fillObj = new GameObject("GaugeFill");
+        fillObj.transform.SetParent(multiBallGaugeContainer.transform, false);
+
+        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        multiBallGaugeFill = fillObj.AddComponent<Image>();
+        multiBallGaugeFill.sprite = CreateRingSprite(64, 8);
+        multiBallGaugeFill.color = new Color(0.3f, 0.8f, 1f);  // 水色
+        multiBallGaugeFill.type = Image.Type.Filled;
+        multiBallGaugeFill.fillMethod = Image.FillMethod.Radial360;
+        multiBallGaugeFill.fillOrigin = (int)Image.Origin360.Top;
+        multiBallGaugeFill.fillClockwise = true;
+        multiBallGaugeFill.fillAmount = 0f;  // 最初は0
+        multiBallGaugeFill.preserveAspect = true;
+
+        // 中央に包丁画像
+        GameObject knifeObj = new GameObject("KnifeIcon");
+        knifeObj.transform.SetParent(multiBallGaugeContainer.transform, false);
+
+        RectTransform knifeRect = knifeObj.AddComponent<RectTransform>();
+        knifeRect.anchorMin = new Vector2(0.5f, 0.5f);
+        knifeRect.anchorMax = new Vector2(0.5f, 0.5f);
+        knifeRect.pivot = new Vector2(0.5f, 0.5f);
+        knifeRect.anchoredPosition = Vector2.zero;
+        knifeRect.sizeDelta = new Vector2(gaugeSize * 0.6f, gaugeSize * 0.6f);
+
+        Image knifeImage = knifeObj.AddComponent<Image>();
+        Sprite knifeSprite = Resources.Load<Sprite>("Sprites/knife");
+        if (knifeSprite != null)
+        {
+            knifeImage.sprite = knifeSprite;
+            knifeImage.preserveAspect = true;
+        }
+        else
+        {
+            // フォールバック：白い円
+            knifeImage.color = Color.white;
+        }
+
+        DebugLog("MultiBallGaugeUI (circular) created");
+    }
+
+    /// <summary>
+    /// リング形状のスプライトを動的に生成
+    /// </summary>
+    Sprite CreateRingSprite(int size, int thickness)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[size * size];
+
+        float center = size / 2f;
+        float outerRadius = size / 2f - 1;
+        float innerRadius = outerRadius - thickness;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                if (dist >= innerRadius && dist <= outerRadius)
+                {
+                    // アンチエイリアス
+                    float alpha = 1f;
+                    if (dist > outerRadius - 1) alpha = outerRadius - dist + 1;
+                    if (dist < innerRadius + 1) alpha = Mathf.Min(alpha, dist - innerRadius + 1);
+                    pixels[y * size + x] = new Color(1, 1, 1, Mathf.Clamp01(alpha));
+                }
+                else
+                {
+                    pixels[y * size + x] = Color.clear;
+                }
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
+    void UpdateMultiBallGauge(int gauge)
+    {
+        if (multiBallGaugeFill == null) return;
+
+        // 円形ゲージの塗りつぶし量を更新
+        float fillPercent = (float)gauge / GAUGE_MAX;
+        multiBallGaugeFill.fillAmount = fillPercent;
+
+        // ゲージが満タンに近づくと色が変化
+        if (gauge >= 8)
+        {
+            multiBallGaugeFill.color = new Color(1f, 0.3f, 0.3f);  // 赤（もうすぐ発動）
+        }
+        else if (gauge >= 5)
+        {
+            multiBallGaugeFill.color = new Color(1f, 0.8f, 0.3f);  // 黄色
+        }
+        else
+        {
+            multiBallGaugeFill.color = new Color(0.3f, 0.8f, 1f);  // 水色
+        }
+
+        DebugLog($"UpdateMultiBallGauge: {gauge}/{GAUGE_MAX} ({fillPercent:P0})");
+    }
+
     // ========== Ready Message ==========
+
+    private GameObject readyMessageBackground;
 
     void ShowReadyMessage()
     {
         if (readyMessageText != null)
         {
             if (textManager != null)
-                readyMessageText.text = textManager.GetText("game", "hud", "ready_message", "スペースキーで発射！");
+                readyMessageText.text = textManager.GetText("game", "hud", "ready_message", "クリックで発射！");
             else
-                readyMessageText.text = "スペースキーで発射！";
+                readyMessageText.text = "クリックで発射！";
+
+            // 白背景・黒文字・カウントダウンの上に配置
+            readyMessageText.color = Color.black;
+            readyMessageText.alignment = TextAlignmentOptions.Center;
+
+            // RectTransformをカウントダウンの上に配置
+            RectTransform rt = readyMessageText.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(0, 120);  // カウントダウンより上
+            rt.sizeDelta = new Vector2(300, 60);
+
+            // 白背景を追加（まだなければ）
+            if (readyMessageBackground == null)
+            {
+                readyMessageBackground = new GameObject("ReadyMessageBackground");
+                readyMessageBackground.transform.SetParent(readyMessageText.transform.parent, false);
+                readyMessageBackground.transform.SetSiblingIndex(readyMessageText.transform.GetSiblingIndex());
+
+                RectTransform bgRect = readyMessageBackground.AddComponent<RectTransform>();
+                bgRect.anchorMin = new Vector2(0.5f, 0.5f);
+                bgRect.anchorMax = new Vector2(0.5f, 0.5f);
+                bgRect.pivot = new Vector2(0.5f, 0.5f);
+                bgRect.anchoredPosition = new Vector2(0, 120);  // テキストと同じ位置
+                bgRect.sizeDelta = new Vector2(320, 70);
+
+                Image bgImage = readyMessageBackground.AddComponent<Image>();
+                bgImage.color = Color.white;
+
+                // 枠線を追加
+                Outline outline = readyMessageBackground.AddComponent<Outline>();
+                outline.effectColor = new Color(0.3f, 0.3f, 0.3f);
+                outline.effectDistance = new Vector2(2, -2);
+            }
+
+            readyMessageBackground.SetActive(true);
             readyMessageText.gameObject.SetActive(true);
         }
     }
@@ -432,6 +688,8 @@ public class UIManager : MonoBehaviour
     {
         if (readyMessageText != null)
             readyMessageText.gameObject.SetActive(false);
+        if (readyMessageBackground != null)
+            readyMessageBackground.SetActive(false);
     }
 
     // ========== リザルト画面 ==========
@@ -664,10 +922,20 @@ public class UIManager : MonoBehaviour
 
     void OnContinueButtonClicked()
     {
-        // ResultSceneへ遷移（腕前評価画面）
-        Debug.Log("[UIManager] Continue clicked - Go to ResultScene");
-        Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene("ResultScene");
+        // 次のステージへ進む（StageManager経由）
+        Debug.Log("[UIManager] Continue clicked - Go to next stage");
+        if (StageManager.Instance != null)
+        {
+            StageManager.Instance.GoToNextStage();
+        }
+        else
+        {
+            // フォールバック：現在のシーンをリロード
+            Debug.LogWarning("[UIManager] StageManager not found, reloading current scene");
+            Time.timeScale = 1f;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        }
     }
 
     void OnRetryButtonClicked()

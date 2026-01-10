@@ -1,0 +1,84 @@
+---
+# MCP Unity 接続問題レポート
+# 作成日: 2026-01-07
+
+issue:
+  title: "WSL2からMCP Unityへの接続タイムアウト"
+  status: "解決済み"
+  resolved_at: "2026-01-07 20:46"
+
+environment:
+  wsl2_distro: "Ubuntu (WSL2)"
+  windows_host_ip: "172.17.128.1"
+  unity_mcp_port: 8090
+  unity_mcp_bind: "0.0.0.0:8090"
+  unity_status: "起動中（Unity.exe確認済み）"
+  mcp_server_status: "起動済み（Unityコンソールログで確認）"
+
+symptoms:
+  - "MCP Unityツール呼び出しで「Connection timeout」エラー"
+  - "WSL2からWindows側のポート8090への接続失敗"
+  - "nc -zv 172.17.128.1 8090 で接続できない"
+
+root_cause:
+  probable: "Windowsファイアウォールがポート8090への受信をブロック"
+  alternative:
+    - "WSL2ネットワーク設定の問題"
+    - "Unityがlocalhostのみでリッスンしている（可能性低：0.0.0.0で起動済み）"
+
+solution:
+  step1:
+    description: "Windowsファイアウォールでポート8090を許可"
+    method: "PowerShell（管理者権限）"
+    command: |
+      New-NetFirewallRule -DisplayName "MCP Unity" -Direction Inbound -Protocol TCP -LocalPort 8090 -Action Allow
+
+  step2:
+    description: "接続テスト（WSL2側で実行）"
+    command: |
+      nc -zv 172.17.128.1 8090
+    expected_result: "Connection to 172.17.128.1 8090 port [tcp/*] succeeded!"
+
+  step3:
+    description: "MCP Unity接続確認"
+    method: "Claude Codeで任意のMCP Unityツールを実行"
+    example: "mcp__mcp-unity__get_console_logs"
+
+alternative_solutions:
+  gui_firewall:
+    description: "Windows Defender ファイアウォール GUIから設定"
+    steps:
+      - "Windows + R → wf.msc → Enter"
+      - "受信の規則 → 新しい規則"
+      - "ポート → TCP → 特定のローカルポート: 8090"
+      - "接続を許可する → すべてのプロファイルにチェック"
+      - "名前: MCP Unity"
+
+  disable_firewall_temporarily:
+    description: "一時的にファイアウォールを無効化（テスト用）"
+    warning: "セキュリティリスクあり、テスト後は再有効化すること"
+    command: |
+      Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+verification:
+  after_fix:
+    - "WSL2: nc -zv 172.17.128.1 8090 が成功すること"
+    - "Claude Code: mcp__mcp-unity__get_console_logs が動作すること"
+
+  actual_result:
+    tested_at: "2026-01-07 20:46"
+    tool_used: "mcp__mcp-unity__get_console_logs"
+    result: "成功"
+    confirmation:
+      - "WebSocketサーバー: 0.0.0.0:8090 で稼働中"
+      - "クライアント接続: 確認済み（20:46:10に接続）"
+      - "MCP Unityメッセージ受信: 正常"
+    logs_received:
+      - "[MCP Unity] WebSocket message received"
+      - "[MCP Unity] WebSocket client 'Unknown MCP Client' connected"
+      - "[MCP Unity] WebSocket server started successfully on 0.0.0.0:8090"
+
+notes:
+  - "MCP Unityは0.0.0.0でバインドしているため、すべてのネットワークインターフェースでリッスン中"
+  - "WSL2はNAT経由でWindowsホストに接続するため、ファイアウォール設定が必要"
+  - "UNITY_HOST環境変数はClaude Code MCP設定で172.17.128.1に設定済みの想定"

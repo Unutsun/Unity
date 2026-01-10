@@ -30,13 +30,13 @@ public class PowerUpItem : MonoBehaviour
         spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
         spriteRenderer.sortingOrder = 5;
 
-        // 魚画像をロード
-        Sprite fishSprite = Resources.Load<Sprite>("Sprites/sakana_normal");
+        // きりみ画像をロード
+        Sprite fishSprite = Resources.Load<Sprite>("Sprites/kirimi");
         if (fishSprite != null)
         {
             spriteRenderer.sprite = fishSprite;
-            // サイズ調整（小さめに）
-            float scale = 0.8f / (fishSprite.texture.width / fishSprite.pixelsPerUnit);
+            // サイズ調整（2倍に）
+            float scale = 1.6f / (fishSprite.texture.width / fishSprite.pixelsPerUnit);
             transform.localScale = Vector3.one * scale;
         }
         else
@@ -70,7 +70,7 @@ public class PowerUpItem : MonoBehaviour
     {
         CircleCollider2D col = gameObject.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = 0.5f;
+        col.radius = 1.5f;  // 当たり判定を広げる
     }
 
     void OnTriggerEnter2D(Collider2D other)

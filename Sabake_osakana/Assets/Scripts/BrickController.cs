@@ -11,7 +11,8 @@ public class BrickController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.name == "Ball" || collision.gameObject.CompareTag("Ball"))
+        // BallHelperで統一判定（メインボール・サブボール両対応）
+        if (BallHelper.IsBall(collision))
         {
             // イベント経由でスコア加算を通知
             GameEvents.TriggerBrickDestroyed(scoreValue);

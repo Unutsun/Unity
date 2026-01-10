@@ -12,7 +12,10 @@ public class WallSetup : MonoBehaviour
     public Transform bottomWall;
 
     [Header("Settings")]
-    public float wallThickness = 1f;
+    public float wallThickness = 0.15f;  // 薄い縦線
+    public float leftMargin = 3.5f;      // 左側のマージン（きりみテキストの右に余裕を持たせる）
+    public float rightMargin = 3.5f;     // 右側のマージン（左右対称でフィールド中央配置）
+    public bool showVisibleWalls = true; // 壁を可視化
 
     private float lastScreenWidth;
     private float lastScreenHeight;
@@ -60,36 +63,46 @@ public class WallSetup : MonoBehaviour
             return;
         }
 
+        // デバッグ：実際の設定値を出力
+        Debug.Log($"[WallSetup] Settings: wallThickness={wallThickness}, leftMargin={leftMargin}, rightMargin={rightMargin}");
+
         float camHeight = cam.orthographicSize * 2f;
         float camWidth = camHeight * cam.aspect;
         float halfWidth = camWidth / 2f;
         float halfHeight = camHeight / 2f;
 
-        Debug.Log($"[WallSetup] Camera size: {camWidth}x{camHeight}, half: {halfWidth}x{halfHeight}");
+        // マージンを適用してフィールドを狭める
+        float fieldLeft = -halfWidth + leftMargin;
+        float fieldRight = halfWidth - rightMargin;
+        float fieldWidth = fieldRight - fieldLeft;
 
-        // 左壁
+        Debug.Log($"[WallSetup] Camera size: {camWidth}x{camHeight}, Field: {fieldLeft} to {fieldRight} (width={fieldWidth})");
+
+        // 左壁（縦線）
         if (leftWall != null)
         {
-            leftWall.position = new Vector3(-halfWidth - wallThickness / 2f, 0, 0);
+            leftWall.position = new Vector3(fieldLeft - wallThickness / 2f, 0, 0);
             leftWall.localScale = new Vector3(wallThickness, camHeight + wallThickness * 2, 1);
             SetupCollider(leftWall.gameObject);
+            SetupWallVisual(leftWall.gameObject);
             Debug.Log($"[WallSetup] LeftWall: pos={leftWall.position}, scale={leftWall.localScale}");
         }
 
-        // 右壁
+        // 右壁（縦線）
         if (rightWall != null)
         {
-            rightWall.position = new Vector3(halfWidth + wallThickness / 2f, 0, 0);
+            rightWall.position = new Vector3(fieldRight + wallThickness / 2f, 0, 0);
             rightWall.localScale = new Vector3(wallThickness, camHeight + wallThickness * 2, 1);
             SetupCollider(rightWall.gameObject);
+            SetupWallVisual(rightWall.gameObject);
             Debug.Log($"[WallSetup] RightWall: pos={rightWall.position}, scale={rightWall.localScale}");
         }
 
         // 上壁
         if (topWall != null)
         {
-            topWall.position = new Vector3(0, halfHeight + wallThickness / 2f, 0);
-            topWall.localScale = new Vector3(camWidth + wallThickness * 2, wallThickness, 1);
+            topWall.position = new Vector3((fieldLeft + fieldRight) / 2f, halfHeight + wallThickness / 2f, 0);
+            topWall.localScale = new Vector3(fieldWidth + wallThickness * 2, wallThickness, 1);
             SetupCollider(topWall.gameObject);
             Debug.Log($"[WallSetup] TopWall: pos={topWall.position}, scale={topWall.localScale}");
         }
@@ -97,11 +110,30 @@ public class WallSetup : MonoBehaviour
         // 下壁（DeathZone）
         if (bottomWall != null)
         {
-            bottomWall.position = new Vector3(0, -halfHeight - wallThickness / 2f, 0);
-            bottomWall.localScale = new Vector3(camWidth + wallThickness * 2, wallThickness, 1);
+            bottomWall.position = new Vector3((fieldLeft + fieldRight) / 2f, -halfHeight - wallThickness / 2f, 0);
+            bottomWall.localScale = new Vector3(fieldWidth + wallThickness * 2, wallThickness, 1);
             SetupTrigger(bottomWall.gameObject);
             Debug.Log($"[WallSetup] BottomWall: pos={bottomWall.position}, scale={bottomWall.localScale}");
         }
+    }
+
+    void SetupWallVisual(GameObject wall)
+    {
+        if (!showVisibleWalls) return;
+
+        SpriteRenderer sr = wall.GetComponent<SpriteRenderer>();
+        if (sr == null)
+        {
+            sr = wall.AddComponent<SpriteRenderer>();
+            // 1x1の白いテクスチャを作成
+            Texture2D tex = new Texture2D(1, 1);
+            tex.SetPixel(0, 0, Color.white);
+            tex.Apply();
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1);
+        }
+        // まないた色の縦線
+        sr.color = GameColors.Manaita;
+        sr.sortingOrder = 10;
     }
 
     void SetupCollider(GameObject wall)

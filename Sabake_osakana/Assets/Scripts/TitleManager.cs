@@ -24,6 +24,18 @@ public class TitleManager : MonoBehaviour
             GameObject textMgrObj = new GameObject("TextDataManager");
             textMgrObj.AddComponent<TextDataManager>();
         }
+
+        // StageManagerが存在しなければ作成
+        if (StageManager.Instance == null)
+        {
+            GameObject stageMgrObj = new GameObject("StageManager");
+            stageMgrObj.AddComponent<StageManager>();
+        }
+        else
+        {
+            // タイトルに戻ってきたらステージをリセット
+            StageManager.Instance.ResetToFirstStage();
+        }
     }
 
     void Start()

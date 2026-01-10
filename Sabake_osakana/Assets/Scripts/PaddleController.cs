@@ -12,7 +12,7 @@ public class PaddleController : MonoBehaviour
     public float maxX = 7f;
 
     [Header("Initial Position")]
-    public float initialYOffset = -0.8f;  // 画面下端からのオフセット（正の値で上方向）
+    public float initialYOffset = -0.6f;  // 画面下端からのオフセット（20px上に調整）
 
     private Camera mainCamera;
     private Rigidbody2D rb;
@@ -61,12 +61,24 @@ public class PaddleController : MonoBehaviour
         float camWidth = camHeight * mainCamera.aspect;
         float halfWidth = camWidth / 2f;
 
+        // WallSetupから実際のマージン値を取得
+        float leftMargin = 3.5f;
+        float rightMargin = 3.5f;
+        WallSetup wallSetup = FindFirstObjectByType<WallSetup>();
+        if (wallSetup != null)
+        {
+            leftMargin = wallSetup.leftMargin;
+            rightMargin = wallSetup.rightMargin;
+        }
+        float fieldLeft = -halfWidth + leftMargin;
+        float fieldRight = halfWidth - rightMargin;
+
         // パドルの半分の幅を考慮して可動域を設定
         float paddleHalfWidth = transform.localScale.x / 2f;
-        minX = -halfWidth + paddleHalfWidth;
-        maxX = halfWidth - paddleHalfWidth;
+        minX = fieldLeft + paddleHalfWidth;
+        maxX = fieldRight - paddleHalfWidth;
 
-        Debug.Log($"[PaddleController] Movement bounds: minX={minX}, maxX={maxX}, camWidth={camWidth}");
+        Debug.Log($"[PaddleController] Movement bounds: minX={minX}, maxX={maxX}, fieldWidth={fieldRight - fieldLeft}");
     }
 
     void SetupCollider()
@@ -108,7 +120,11 @@ public class PaddleController : MonoBehaviour
             texture.SetPixel(0, 0, Color.white);
             texture.Apply();
             sr.sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1);
-            sr.color = new Color(0.4f, 0.49f, 0.92f); // 青いパドル
+        }
+        // まないた色を適用（CSVから取得）
+        if (sr != null)
+        {
+            sr.color = GameColors.Manaita;
         }
     }
 

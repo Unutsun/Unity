@@ -2,9 +2,9 @@
 project:
   name: "Sabake_osakana - 魚さばきブロック崩し（Unity版）"
   description: "HTML5で作成したブロック崩しゲームをUnityで再現するプロジェクト"
-  status: "開発中（演出強化・疎結合リファクタリング完了）"
+  status: "開発中（マルチボール機能実装中）"
   created: 2025-11-29
-  updated: 2025-12-25
+  updated: 2026-01-09
 
 # =============================================
 # プロジェクト概要
@@ -32,27 +32,36 @@ current_status:
     - "ポーズ機能"
     - "疎結合アーキテクチャ（GameEvents）"
     - "MCP経由でのUnity操作"
-    - "色設定の一元管理（GameColors.cs）"
+    - "色設定のCSV管理（ColorData.csv + GameColors.cs）"
     - "マリオカート風カウントダウン（3,2,1,さばけ！）"
     - "包丁スプライト（進行方向に回転）"
     - "包丁軌跡エフェクト（TrailRenderer）"
     - "紙吹雪パーティクル（全ブロック破壊時）"
     - "骨背景画像表示（脱衣ブロック崩し方式）"
     - "画面リサイズ対応（壁の自動再配置）"
+    - "フィールド枠線表示（まないた色の縦線）"
+    - "きりみアイテム（kirimi.png、当たり判定拡大）"
+    - "マルチボールゲージシステム（円形UI）"
+    - "サブボール生成（色違い包丁）"
 
   recently_completed:
-    - "カウントダウン演出（CountdownManager.cs）"
-    - "包丁スプライト表示・回転（Twemoji knife.png）"
-    - "リザルトランクをパーセント基準に変更（100%=おさしみ級）"
-    - "全クリア時の紙吹雪パーティクル（ConfettiManager.cs）"
-    - "骨背景画像の読み込み・表示（bone_image.png）"
-    - "リザルトパネルにダークグレー枠線追加"
-    - "画面リサイズ時の壁自動更新"
-    - "包丁リセット時に上向き回転"
-    - "パドル・包丁の初期位置を下方に調整"
+    - "色設定CSV化（ColorData.csv + GameColors.cs改修）"
+    - "パドルをまないた色に変更"
+    - "フィールド左右に縦線の壁を表示"
+    - "きりみ表示を右下からライフの下に移動"
+    - "ライフ表示簡略化（♥のみ）"
+    - "きりみ画像生成・適用（kirimi.png）"
+    - "きりみの当たり判定拡大（radius 1.5）"
+    - "「クリックで発射！」ボタン実装"
+    - "マルチボールゲージ実装（円形UI・包丁アイコン中央）"
+    - "サブボール（色違い包丁）生成システム"
+    - "虹色包丁画像生成スクリプト"
+    - "BallHelper.cs（タグ不要のボール判定ユーティリティ）"
+    - "UILayoutData.csv + UILayoutManager.cs（UI配置の外部データ化）"
+    - "StageManager.cs（ステージ進行管理）"
 
   in_progress:
-    - "テストプレイ・動作確認"
+    - "マルチボール機能のテストプレイ"
 
 # =============================================
 # リソース一覧
@@ -73,6 +82,18 @@ resources:
       usage: "BallControllerでボール表示に使用、進行方向に回転"
       rotation_offset: -50  # Twemoji画像の初期向き補正
 
+    - path: "Resources/Sprites/Knives/"
+      description: "虹色包丁スプライト（6色）"
+      files:
+        - "knife_red.png"
+        - "knife_blue.png"
+        - "knife_yellow.png"
+        - "knife_green.png"
+        - "knife_purple.png"
+        - "knife_pink.png"
+      usage: "サブボール（MultiBallManager）で使用"
+      generator: "Tools/generate_rainbow_knives.py"
+
     - path: "Resources/Sprites/bone_image.png"
       description: "骨背景画像（透過PNG）"
       usage: "BrickManagerでBONE背景として表示（脱衣ブロック崩し方式）"
@@ -83,15 +104,45 @@ resources:
       usage: "TextMeshPro用"
 
   ui:
-    - path: "Resources/RoundedButton.png"
-      description: "角丸ボタン用スプライト"
+    - path: "Resources/Sprites/UI/rounded_panel.png"
+      description: "角丸パネル用スプライト（96x96, 角24px, 枠線3px）"
+      usage: "ResultPanel, GameOverPanel等のパネル背景"
+      import_settings:
+        spriteMode: 1
+        spriteBorder: "24,24,24,24"  # 9-slice用
+        filterMode: 1  # Bilinear
+
+    - path: "Resources/Sprites/UI/rounded_button.png"
+      description: "角丸ボタン用スプライト（64x64, 角16px, 枠線2px）"
       usage: "UI Button背景"
+      import_settings:
+        spriteMode: 1
+        spriteBorder: "16,16,16,16"
+        filterMode: 1
+
+    - path: "Resources/Sprites/UI/rounded_panel_no_border.png"
+      description: "枠線なし角丸パネル（96x96, 角24px）"
+      usage: "枠線不要なパネル背景"
+
+    - path: "Resources/RoundedButton.png"
+      description: "角丸ボタン用スプライト（旧版）"
+      usage: "UI Button背景"
+      status: "deprecated - 新版はSprites/UI/以下"
 
   data:
     - path: "Resources/TextData.csv"
       description: "UIテキストデータ"
       format: "CSV (category,key,subkey,text)"
       usage: "TextDataManagerで読み込み"
+
+    - path: "Resources/UILayoutData.csv"
+      description: "UI配置データ（疎結合設計）"
+      format: "CSV (element,anchorX,anchorY,pivotX,pivotY,posX,posY,width,height,fontSize,extra)"
+      usage: "UILayoutManagerで読み込み、各UI要素の配置に適用"
+      elements:
+        - "HUD要素（Lives, Kirimi, Timer, Gauge, Pause）"
+        - "パネル（Result, GameOver, Pause）"
+        - "パネル内ボタン・テキスト"
 
     - path: "Resources/StageData.csv"
       description: "ステージ設定データ（予定）"
@@ -107,9 +158,16 @@ resources:
 # アーキテクチャ（疎結合設計）
 # =============================================
 architecture:
-  design_pattern: "イベント駆動アーキテクチャ"
+  design_pattern: "イベント駆動 + データ駆動アーキテクチャ"
   description: |
     各コンポーネントはGameEventsを通じて通信し、直接参照を持たない疎結合設計。
+    設定データはCSVファイルで外部化し、コード変更なしで調整可能。
+
+  data_driven_components:
+    colors: "ColorData.csv → GameColors.cs"
+    texts: "TextData.csv → TextDataManager.cs"
+    ui_layout: "UILayoutData.csv → UILayoutManager.cs"
+    stage: "StageData.csv → StageDataManager.cs（予定）"
 
   scripts:
     GameEvents.cs:
@@ -120,6 +178,7 @@ architecture:
         - "OnBrickDestroyed(int), OnKirimiChanged(int), OnLivesChanged(int)"
         - "OnTimeChanged(float), OnTimeUp"
         - "OnGamePause, OnGameResume, OnReturnToTitle"
+        - "OnMultiBallGaugeChanged(int), OnSubBallSpawned(int), OnSubBallLost"
 
     GameState.cs:
       role: "状態管理シングルトン"
@@ -177,6 +236,17 @@ architecture:
       role: "テキストデータ管理"
       source: "Resources/TextData.csv"
 
+    UILayoutManager.cs:
+      role: "UI配置データ管理（シングルトン）"
+      source: "Resources/UILayoutData.csv"
+      features:
+        - "CSVからレイアウトデータ読み込み"
+        - "要素名でレイアウト取得"
+        - "RectTransformへのレイアウト適用"
+      methods:
+        - "GetLayout(elementName): レイアウトデータ取得"
+        - "ApplyLayout(rt, elementName): RectTransformに適用"
+
     BallController.cs:
       role: "ボール（包丁）制御"
       features:
@@ -210,11 +280,63 @@ architecture:
         - "Unicode四角絵文字の色を使用"
         - "ランダムな落下・揺れ・回転"
 
+    MultiBallManager.cs:
+      role: "マルチボールゲージ管理（シングルトン）"
+      features:
+        - "ブロック破壊でゲージ増加（10で発動）"
+        - "サブボール生成（虹色順）"
+        - "ゲーム再開時の状態リセット"
+      settings:
+        gaugeMax: 10
+        gaugePerBrick: 1
+        subBallSpeed: 8
+      events_listened:
+        - "OnBrickDestroyed"
+        - "OnGameRestart"
+        - "OnReturnToTitle"
+
+    SubBall.cs:
+      role: "サブボール（色違い包丁）制御"
+      features:
+        - "パドルで打ち返し可能"
+        - "ブロック破壊可能"
+        - "画面外で消滅（ライフに影響なし）"
+        - "進行方向に回転"
+        - "軌跡エフェクト（TrailRenderer）"
+
+    BallHelper.cs:
+      role: "ボール判定ユーティリティ（静的クラス）"
+      description: "タグ不要・コンポーネントベースのボール判定"
+      methods:
+        - "IsBall(GameObject): メイン/サブボール判定"
+        - "IsBall(Collision2D): 衝突からボール判定"
+        - "IsBall(Collider2D): コライダーからボール判定"
+        - "IsMainBall(GameObject): メインボールのみ判定"
+        - "IsSubBall(GameObject): サブボールのみ判定"
+      usage: "BrickController等で使用"
+
+    StageManager.cs:
+      role: "ステージ進行管理（シングルトン・DontDestroy）"
+      features:
+        - "現在のステージ番号を管理"
+        - "次のステージへ進む（GoToNextStage）"
+        - "ステージリトライ（RetryCurrentStage）"
+        - "タイトルへ戻る（GoToTitle）"
+      settings:
+        maxStages: 3
+        gameSceneName: "SampleScene"
+        titleSceneName: "TitleScene"
+
     WallSetup.cs:
       role: "壁の自動配置"
       features:
         - "カメラサイズに合わせた壁位置・サイズ設定"
         - "画面リサイズ検知・壁再配置"
+        - "左右マージン設定（フィールド中央配置）"
+      settings:
+        leftMargin: 3.5  # きりみテキストとの重なり回避
+        rightMargin: 3.5  # 左右対称で中央配置
+      note: "PaddleController等はWallSetupからマージン値を動的取得"
 
     BackgroundSetup.cs:
       role: "背景設定"
@@ -395,16 +517,128 @@ work_log:
       - "包丁リセット時の上向き回転"
       - "パドル・包丁の初期位置を下方に調整"
 
+  - date: 2026-01-07
+    action: "UI画像改善（角丸パネル高品質化）"
+    result:
+      - "角丸パネル画像生成スクリプト作成（Tools/generate_rounded_corners.py）"
+      - "アンチエイリアス付き角丸UI画像生成（4倍描画→縮小方式）"
+      - "rounded_panel.png（96x96, 角24px, 枠線3px）"
+      - "rounded_button.png（64x64, 角16px, 枠線2px）"
+      - "rounded_panel_no_border.png（96x96, 枠線なし）"
+      - "MCP Unity WSL2対応設定追加（UNITY_HOST環境変数）"
+    note: |
+      Unity側での設定手順:
+      1. Assets/Resources/Sprites/UI/の画像をインポート
+      2. Sprite Editorで Border を設定（例: L=24, R=24, T=24, B=24）
+      3. ResultPanel の Image Type を 'Sliced' に設定
+
+  - date: 2026-01-08
+    action: "UI/UX大幅改善・色設定CSV化"
+    result:
+      - "色設定CSV化（ColorData.csv + GameColors.cs改修）"
+      - "パドルをまないた色（黄土色/ベージュ）に変更"
+      - "フィールド左右に縦線の壁を表示"
+      - "きりみ表示を右下からライフの下に移動"
+      - "ライフ表示から「ライフ：」削除（♥のみ表示）"
+      - "きりみ画像生成（kirimi.png）"
+      - "PowerUpItemの画像をkirimi.pngに変更"
+      - "きりみの当たり判定を拡大（radius 0.5→1.5）"
+      - "きりみサイズを2倍に拡大"
+      - "「クリックで発射！」ボタン（白背景・黒文字・中央配置）"
+    files_changed:
+      - "Assets/Resources/ColorData.csv（新規）"
+      - "Assets/Scripts/GameColors.cs"
+      - "Assets/Scripts/WallSetup.cs"
+      - "Assets/Scripts/PaddleController.cs"
+      - "Assets/Scripts/UIManager.cs"
+      - "Assets/Scripts/PowerUpItem.cs"
+      - "Assets/Resources/Sprites/kirimi.png（新規）"
+      - "Tools/generate_kirimi.py（新規）"
+
+  - date: 2026-01-08
+    action: "マルチボールゲージシステム実装"
+    result:
+      - "MultiBallManager.cs作成（ブロック10個破壊でサブボール生成）"
+      - "SubBall.cs作成（色違い包丁、パドルで打ち返し可能）"
+      - "GameEvents.csにマルチボール関連イベント追加"
+      - "UIManager.csに円形ゲージUI追加（Radial360、包丁アイコン中央）"
+      - "虹色包丁画像生成スクリプト（generate_rainbow_knives.py）"
+      - "ゲージ色変化（水色→黄色→赤）"
+    files_changed:
+      - "Assets/Scripts/MultiBallManager.cs（新規）"
+      - "Assets/Scripts/SubBall.cs（新規）"
+      - "Assets/Scripts/GameEvents.cs"
+      - "Assets/Scripts/UIManager.cs"
+      - "Assets/Scripts/GameManager.cs"
+      - "Tools/generate_rainbow_knives.py（新規）"
+    ui_design:
+      gauge_type: "円形ゲージ（Radial360）"
+      gauge_position: "左上、きりみ表示の下"
+      gauge_size: "60x60px"
+      gauge_colors:
+        - "0-4: 水色"
+        - "5-7: 黄色"
+        - "8-9: 赤"
+      center_icon: "包丁スプライト（knife.png）"
+
+  - date: 2026-01-08
+    action: "タグ依存リファクタリング"
+    result:
+      - "BallHelper.cs作成（ボール判定ユーティリティ）"
+      - "BrickController.csをBallHelper使用に変更"
+      - "「Tag: Ball is not defined」エラー完全解消"
+      - "コンポーネントベースの判定に統一"
+    files_changed:
+      - "Assets/Scripts/BallHelper.cs（新規）"
+      - "Assets/Scripts/BrickController.cs"
+      - "Assets/Scripts/MultiBallManager.cs"
+    design_notes:
+      before: "CompareTag(\"Ball\")でタグ依存→未定義タグでエラー"
+      after: "BallHelper.IsBall()でコンポーネント判定→タグ不要"
+
+  - date: 2026-01-08
+    action: "UI配置の外部データ化（疎結合強化）"
+    result:
+      - "UILayoutData.csv作成（UI要素の配置データ）"
+      - "UILayoutManager.cs作成（レイアウトデータ管理）"
+      - "UIManager.csをデータ駆動に更新"
+      - "GameManager.csにUILayoutManager初期化追加"
+    files_changed:
+      - "Assets/Resources/UILayoutData.csv（新規）"
+      - "Assets/Scripts/UILayoutManager.cs（新規）"
+      - "Assets/Scripts/UIManager.cs"
+      - "Assets/Scripts/GameManager.cs"
+    design_notes:
+      before: "UI位置がコード内にハードコード（密結合）"
+      after: "CSVからレイアウト読み込み、ApplyLayout()で適用（疎結合）"
+      benefit: "UIの配置変更がコード修正不要、CSV編集のみで可能"
+
+  - date: 2026-01-09
+    action: "フィールドマージン修正・疎結合強化"
+    result:
+      - "WallSetup.csのマージン値を3.5fに統一（左右対称でフィールド中央配置）"
+      - "PaddleController.csをWallSetupから動的にマージン取得に変更（値のハードコード排除）"
+      - "「きりみ」テキストとフィールド壁の重なり解消"
+    files_changed:
+      - "Assets/Scripts/WallSetup.cs"
+      - "Assets/Scripts/PaddleController.cs"
+    design_notes:
+      before: "PaddleControllerに古いマージン値(2.0f, 2.5f)がハードコード→WallSetupと不整合"
+      after: "PaddleControllerがWallSetupからマージン値を動的取得→常に同期"
+      benefit: "マージン値をWallSetupだけで管理、他コンポーネントは自動追従"
+
 # =============================================
 # 次回作業時の手順
 # =============================================
 next_actions:
   immediate:
-    - "Unityでテストプレイして動作確認"
-    - "ゲームバランス調整（制限時間、ボール速度等）"
-    - "新しい魚画像（サバ、タイ等）の追加"
+    - "フィールドマージン修正の確認（きりみテキストと壁の重なり解消）"
+    - "マルチボール機能の動作確認"
 
   future:
+    - "マルチボール強化（サブボールの種類追加、特殊効果）"
+    - "ゲームバランス調整（制限時間、ボール速度等）"
+    - "新しい魚画像（サバ、タイ等）の追加"
     - "複数ステージのゲームフロー実装"
     - "ステージ選択画面作成"
     - "魚ごとの難易度調整"

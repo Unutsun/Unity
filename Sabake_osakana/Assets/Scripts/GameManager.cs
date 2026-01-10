@@ -27,12 +27,55 @@ public class GameManager : MonoBehaviour
                 obj.AddComponent<GameData>();
             }
 
+            // UILayoutManagerが存在しなければ作成（UI配置データ管理）
+            if (FindFirstObjectByType<UILayoutManager>() == null)
+            {
+                GameObject layoutObj = new GameObject("UILayoutManager");
+                layoutObj.AddComponent<UILayoutManager>();
+                Debug.Log("[GameManager] UILayoutManager created");
+            }
+
             // FeverManagerが存在しなければ作成
             if (FindFirstObjectByType<FeverManager>() == null)
             {
                 GameObject feverObj = new GameObject("FeverManager");
                 feverObj.AddComponent<FeverManager>();
                 Debug.Log("[GameManager] FeverManager created");
+            }
+
+            // SimulationLoggerが存在しなければ作成（ログ記録用）
+            if (FindFirstObjectByType<SimulationLogger>() == null)
+            {
+                GameObject loggerObj = new GameObject("SimulationLogger");
+                loggerObj.AddComponent<SimulationLogger>();
+                Debug.Log("[GameManager] SimulationLogger created");
+            }
+
+            // AutoPlayerが存在しなければ作成（自動プレイ用）
+            // バッチモード時または手動で有効化した場合のみ動作
+            if (FindFirstObjectByType<AutoPlayer>() == null)
+            {
+                GameObject autoPlayerObj = new GameObject("AutoPlayer");
+                var autoPlayer = autoPlayerObj.AddComponent<AutoPlayer>();
+                // デフォルトでは無効、バッチモード時のみ有効
+                autoPlayer.enableAutoPlay = Application.isBatchMode;
+                Debug.Log($"[GameManager] AutoPlayer created (enabled: {autoPlayer.enableAutoPlay})");
+            }
+
+            // MultiBallManagerが存在しなければ作成（マルチボールゲージ）
+            if (FindFirstObjectByType<MultiBallManager>() == null)
+            {
+                GameObject multiBallObj = new GameObject("MultiBallManager");
+                multiBallObj.AddComponent<MultiBallManager>();
+                Debug.Log("[GameManager] MultiBallManager created");
+            }
+
+            // StageManagerが存在しなければ作成（ステージ進行管理）
+            if (StageManager.Instance == null)
+            {
+                GameObject stageObj = new GameObject("StageManager");
+                stageObj.AddComponent<StageManager>();
+                Debug.Log("[GameManager] StageManager created");
             }
         }
         else

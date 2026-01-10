@@ -32,6 +32,11 @@ public static class GameEvents
     public static event Action<float> OnTimeChanged;   // 残り時間
     public static event Action OnTimeUp;               // タイムアップ
 
+    // マルチボール関連
+    public static event Action<int> OnMultiBallGaugeChanged;  // ゲージ変更（0-10）
+    public static event Action<int> OnSubBallSpawned;         // サブボール生成（色インデックス）
+    public static event Action OnSubBallLost;                 // サブボール消滅（ライフ影響なし）
+
     // イベント発火メソッド（デバッグログ付き）
     public static void TriggerGameStart()
     {
@@ -129,6 +134,24 @@ public static class GameEvents
         OnTimeUp?.Invoke();
     }
 
+    public static void TriggerMultiBallGaugeChanged(int gauge)
+    {
+        Debug.Log($"[GameEvents] TriggerMultiBallGaugeChanged: {gauge}/10");
+        OnMultiBallGaugeChanged?.Invoke(gauge);
+    }
+
+    public static void TriggerSubBallSpawned(int colorIndex)
+    {
+        Debug.Log($"[GameEvents] TriggerSubBallSpawned: colorIndex={colorIndex}");
+        OnSubBallSpawned?.Invoke(colorIndex);
+    }
+
+    public static void TriggerSubBallLost()
+    {
+        Debug.Log("[GameEvents] TriggerSubBallLost");
+        OnSubBallLost?.Invoke();
+    }
+
     // イベントリスナーをすべてクリア（シーン遷移時に呼ぶ）
     public static void ClearAllListeners()
     {
@@ -149,5 +172,8 @@ public static class GameEvents
         OnLivesChanged = null;
         OnTimeChanged = null;
         OnTimeUp = null;
+        OnMultiBallGaugeChanged = null;
+        OnSubBallSpawned = null;
+        OnSubBallLost = null;
     }
 }

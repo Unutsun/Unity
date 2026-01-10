@@ -1,0 +1,29 @@
+element,anchorX,anchorY,pivotX,pivotY,posX,posY,width,height,fontSize,extra
+# HUD要素
+LivesText,0,1,0,1,20,-20,200,40,32,
+KirimiText,0,1,0,1,20,-60,250,40,28,
+TimerText,0.5,1,0.5,1,0,-30,200,50,48,
+MultiBallGauge,0,1,0.5,0.5,50,-130,60,60,0,
+PauseButton,1,1,1,1,-20,-20,60,60,24,
+# Ready画面
+ReadyMessage,0.5,0.5,0.5,0.5,0,0,300,60,36,
+ReadyMessageBG,0.5,0.5,0.5,0.5,0,0,320,70,0,
+# パネル共通
+ResultPanel,0.5,0.5,0.5,0.5,0,0,400,500,0,
+GameOverPanel,0.5,0.5,0.5,0.5,0,0,400,400,0,
+PausePanel,0.5,0.5,0.5,0.5,0,0,350,300,0,
+# パネル内要素（ResultPanel）
+ResultTitle,0.5,1,0.5,1,0,-30,350,60,36,
+ResultKirimi,0.5,1,0.5,1,0,-100,300,40,28,
+ResultTime,0.5,1,0.5,1,0,-150,300,40,28,
+ResultRank,0.5,0.5,0.5,0.5,0,0,200,80,64,
+ResultRetryButton,0.5,0,0.5,0,0,80,200,50,24,
+ResultTitleButton,0.5,0,0.5,0,0,20,200,50,24,
+# パネル内要素（GameOverPanel）
+GameOverTitle,0.5,1,0.5,1,0,-30,350,60,36,
+GameOverMessage,0.5,0.5,0.5,0.5,0,20,300,40,24,
+GameOverRetryButton,0.5,0,0.5,0,0,80,200,50,24,
+GameOverTitleButton,0.5,0,0.5,0,0,20,200,50,24,
+# デバッグボタン
+DebugTimeoutButton,1,1,1,1,-60,-100,100,40,18,
+DebugClearButton,1,1,1,1,-60,-180,100,40,18,

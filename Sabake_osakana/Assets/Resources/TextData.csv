@@ -10,7 +10,7 @@ title,default,button_start,さばく！
 game,hud,label_life,ライフ:
 game,hud,label_time,制限時間:
 game,hud,label_kirimi,きりみ:
-game,hud,ready_message,スペースキーで発射！
+game,hud,ready_message,クリックで発射！
 game,hud,button_pause,||
 # ========================================
 # GameScene - Pause

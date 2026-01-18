@@ -77,6 +77,46 @@ public class GameManager : MonoBehaviour
                 stageObj.AddComponent<StageManager>();
                 Debug.Log("[GameManager] StageManager created");
             }
+
+            // KirimiSpawnerが存在しなければ作成（落下きりみ管理）
+            if (KirimiSpawner.Instance == null)
+            {
+                GameObject spawnerObj = new GameObject("KirimiSpawner");
+                spawnerObj.AddComponent<KirimiSpawner>();
+                Debug.Log("[GameManager] KirimiSpawner created");
+            }
+
+            // FlowingFishManagerが存在しなければ作成（流れてくる魚管理）
+            if (FlowingFishManager.Instance == null)
+            {
+                GameObject fishManagerObj = new GameObject("FlowingFishManager");
+                fishManagerObj.AddComponent<FlowingFishManager>();
+                Debug.Log("[GameManager] FlowingFishManager created");
+            }
+
+            // SkillManagerが存在しなければ作成（スキルシステム）
+            if (SkillManager.Instance == null)
+            {
+                GameObject skillManagerObj = new GameObject("SkillManager");
+                skillManagerObj.AddComponent<SkillManager>();
+                Debug.Log("[GameManager] SkillManager created");
+            }
+
+            // SkillSelectionUIが存在しなければ作成（スキル選択UI）
+            if (FindFirstObjectByType<SkillSelectionUI>() == null)
+            {
+                GameObject skillUIObj = new GameObject("SkillSelectionUI");
+                skillUIObj.AddComponent<SkillSelectionUI>();
+                Debug.Log("[GameManager] SkillSelectionUI created");
+            }
+
+            // ComboManagerが存在しなければ作成（コンボシステム）
+            if (ComboManager.Instance == null)
+            {
+                GameObject comboObj = new GameObject("ComboManager");
+                comboObj.AddComponent<ComboManager>();
+                Debug.Log("[GameManager] ComboManager created");
+            }
         }
         else
         {

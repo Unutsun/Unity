@@ -217,6 +217,12 @@ public class UIManager : MonoBehaviour
         GameEvents.OnBallReset -= ShowReadyMessage;
         GameEvents.OnBallLaunched -= HideReadyMessage;
         GameEvents.OnMultiBallGaugeChanged -= UpdateMultiBallGauge;
+
+        // SkillManager イベント解除
+        if (SkillManager.Instance != null)
+        {
+            SkillManager.Instance.OnSkillSelectionComplete -= GoToNextStage;
+        }
     }
 
     void Start()
@@ -233,6 +239,13 @@ public class UIManager : MonoBehaviour
         CreateDebugButtons();
         ShowReadyMessage();
         InitializeHUD();
+
+        // SkillManager イベント登録
+        if (SkillManager.Instance != null)
+        {
+            SkillManager.Instance.OnSkillSelectionComplete += GoToNextStage;
+            DebugLog("[UIManager] Registered for SkillManager.OnSkillSelectionComplete");
+        }
 
         DebugLogUIElementSizes();
         DebugLog("=== UIManager Start Complete ===");
@@ -637,6 +650,7 @@ public class UIManager : MonoBehaviour
 
     void ShowReadyMessage()
     {
+        Debug.Log($"[UIManager] ShowReadyMessage called: text={readyMessageText != null}");
         if (readyMessageText != null)
         {
             if (textManager != null)
@@ -686,10 +700,17 @@ public class UIManager : MonoBehaviour
 
     void HideReadyMessage()
     {
+        Debug.Log($"[UIManager] HideReadyMessage called: text={readyMessageText != null}, bg={readyMessageBackground != null}");
         if (readyMessageText != null)
+        {
             readyMessageText.gameObject.SetActive(false);
+            Debug.Log("[UIManager] ReadyMessageText hidden");
+        }
         if (readyMessageBackground != null)
+        {
             readyMessageBackground.SetActive(false);
+            Debug.Log("[UIManager] ReadyMessageBackground hidden");
+        }
     }
 
     // ========== リザルト画面 ==========
@@ -922,8 +943,33 @@ public class UIManager : MonoBehaviour
 
     void OnContinueButtonClicked()
     {
-        // 次のステージへ進む（StageManager経由）
-        Debug.Log("[UIManager] Continue clicked - Go to next stage");
+        Debug.Log("[UIManager] Continue clicked - Show skill selection");
+
+        // リザルトパネルを閉じる
+        if (resultPanel != null)
+        {
+            resultPanel.SetActive(false);
+        }
+
+        // スキル選択を表示
+        if (SkillManager.Instance != null)
+        {
+            SkillManager.Instance.ShowSkillSelection();
+        }
+        else
+        {
+            // SkillManagerがない場合は直接次のステージへ
+            Debug.LogWarning("[UIManager] SkillManager not found, going to next stage directly");
+            GoToNextStage();
+        }
+    }
+
+    /// <summary>
+    /// 次のステージへ進む（スキル選択完了後に呼ばれる）
+    /// </summary>
+    void GoToNextStage()
+    {
+        Debug.Log("[UIManager] Going to next stage");
         if (StageManager.Instance != null)
         {
             StageManager.Instance.GoToNextStage();

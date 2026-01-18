@@ -11,7 +11,8 @@ public enum GameStateType
     Playing,    // プレイ中
     Paused,     // 一時停止
     GameOver,   // ゲームオーバー
-    GameClear   // クリア
+    GameClear,  // クリア
+    Bonus       // ボーナスタイム（全ブロック破壊後、きりみ稼ぎ放題）
 }
 
 /// <summary>
@@ -91,6 +92,7 @@ public class GameState : MonoBehaviour
         switch (newState)
         {
             case GameStateType.Playing:
+            case GameStateType.Bonus:  // フィーバー中も時間は進む
                 Time.timeScale = 1f;
                 break;
             case GameStateType.Countdown:
@@ -139,17 +141,32 @@ public class GameState : MonoBehaviour
         destroyedBricks += count;
         Debug.Log($"[GameState] AddDestroyedBricks: +{count}, total={destroyedBricks}/{totalBricks}");
 
-        if (destroyedBricks >= totalBricks && totalBricks > 0)
+        if (destroyedBricks >= totalBricks && totalBricks > 0 && currentState != GameStateType.Bonus)
         {
-            Debug.Log($"[GameState] All bricks destroyed! Game Clear!");
-            SetState(GameStateType.GameClear);
-            GameEvents.TriggerGameClear();
+            Debug.Log($"[GameState] All bricks destroyed! Entering FEVER MODE!");
+            SetState(GameStateType.Bonus);
+            GameEvents.TriggerAllBricksDestroyed();  // フィーバー開始イベント
+        }
+    }
+
+    /// <summary>
+    /// 残り時間ボーナスを適用（残り時間×10）
+    /// </summary>
+    void ApplyTimeBonus()
+    {
+        if (remainingTime > 0)
+        {
+            int bonus = Mathf.FloorToInt(remainingTime) * 10;
+            kirimi += bonus;
+            Debug.Log($"[GameState] Time bonus applied! {Mathf.FloorToInt(remainingTime)} seconds × 10 = +{bonus} kirimi, total={kirimi}");
+            GameEvents.TriggerKirimiChanged(kirimi);
         }
     }
 
     public void UpdateTime(float deltaTime)
     {
-        if (currentState != GameStateType.Playing) return;
+        // PlayingとBonus中は時間を消費
+        if (currentState != GameStateType.Playing && currentState != GameStateType.Bonus) return;
 
         remainingTime -= deltaTime;
         GameEvents.TriggerTimeChanged(remainingTime);
@@ -163,16 +180,35 @@ public class GameState : MonoBehaviour
 
     void HandleBrickDestroyed(int points)
     {
-        kirimi += points;
+        // コンボ倍率を適用（桜井理論：リスクに応じたリターン）
+        float comboMultiplier = 1f;
+        int comboCount = 0;
+        if (ComboManager.Instance != null)
+        {
+            comboMultiplier = ComboManager.Instance.GetCurrentMultiplier();
+            comboCount = ComboManager.Instance.GetCurrentCombo();
+        }
+
+        int finalPoints = Mathf.RoundToInt(points * comboMultiplier);
+        kirimi += finalPoints;
         destroyedBricks++;
-        Debug.Log($"[GameState] HandleBrickDestroyed: kirimi={kirimi}, destroyed={destroyedBricks}/{totalBricks}");
+
+        if (comboCount >= 2)
+        {
+            Debug.Log($"[GameState] HandleBrickDestroyed: COMBO {comboCount}x! {points} × {comboMultiplier} = {finalPoints}, total kirimi={kirimi}");
+        }
+        else
+        {
+            Debug.Log($"[GameState] HandleBrickDestroyed: kirimi={kirimi}, destroyed={destroyedBricks}/{totalBricks}");
+        }
+
         GameEvents.TriggerKirimiChanged(kirimi);
 
-        if (destroyedBricks >= totalBricks)
+        if (destroyedBricks >= totalBricks && currentState != GameStateType.Bonus)
         {
-            Debug.Log($"[GameState] HandleBrickDestroyed: All bricks destroyed! Game Clear!");
-            SetState(GameStateType.GameClear);
-            GameEvents.TriggerGameClear();
+            Debug.Log($"[GameState] HandleBrickDestroyed: All bricks destroyed! Entering FEVER MODE!");
+            SetState(GameStateType.Bonus);
+            GameEvents.TriggerAllBricksDestroyed();  // フィーバー開始イベント
         }
     }
 
@@ -199,6 +235,13 @@ public class GameState : MonoBehaviour
     {
         // タイムアップは腕前評価画面へ（ボタン押下待ち）
         Debug.Log($"[GameState] HandleTimeUp: Time's up! Show ranking panel and wait for button.");
+
+        // フィーバー中だった場合はタイムボーナスを適用
+        if (currentState == GameStateType.Bonus)
+        {
+            ApplyTimeBonus();
+        }
+
         SetState(GameStateType.GameClear);
         Time.timeScale = 0f;  // ゲームを停止（ボールも止まる）
         // GameClearイベントはパネル表示用。自動遷移はしない。

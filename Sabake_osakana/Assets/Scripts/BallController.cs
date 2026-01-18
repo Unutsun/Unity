@@ -8,13 +8,19 @@ using UnityEngine;
 public class BallController : MonoBehaviour
 {
     [Header("Ball Settings")]
-    public float speed = 8f;
+    public float baseSpeed = 8f;  // 基本速度
+    public float speed = 8f;      // 現在の速度（動的に変化）
+
+    [Header("Speed Scaling")]
+    public float speedAt50Percent = 1.2f;   // 残り50%で1.2倍
+    public float speedAt25Percent = 1.5f;   // 残り25%で1.5倍
 
     [Header("References")]
     [SerializeField] private Transform paddle;  // Inspectorで設定可能
 
     private Rigidbody2D rb;
     private bool isLaunched = false;
+    private float currentSpeedMultiplier = 1f;
     private Vector3 offsetFromPaddle = new Vector3(0, 0.5f, 0);
     private Transform knifeVisual;  // 包丁の見た目（回転用）
     private const float KNIFE_ROTATION_OFFSET = -50f;  // 包丁画像の初期向きオフセット（Twemoji用）
@@ -203,6 +209,9 @@ public class BallController : MonoBehaviour
             }
         }
 
+        // 動的速度調整（桜井理論：進行に応じてリスク増加）
+        UpdateSpeedBasedOnProgress();
+
         if (!isLaunched)
         {
             FollowPaddle();
@@ -211,6 +220,40 @@ public class BallController : MonoBehaviour
         else
         {
             MaintainSpeed();
+        }
+    }
+
+    /// <summary>
+    /// ブロック破壊率に応じて速度を上げる（桜井理論：動的リスク）
+    /// </summary>
+    void UpdateSpeedBasedOnProgress()
+    {
+        if (GameState.Instance == null) return;
+
+        int total = GameState.Instance.TotalBricks;
+        int destroyed = GameState.Instance.DestroyedBricks;
+        if (total <= 0) return;
+
+        float remainingRatio = 1f - (float)destroyed / total;
+        float newMultiplier = 1f;
+
+        // 残り25%以下 → 1.5倍
+        if (remainingRatio <= 0.25f)
+        {
+            newMultiplier = speedAt25Percent;
+        }
+        // 残り50%以下 → 1.2倍
+        else if (remainingRatio <= 0.5f)
+        {
+            newMultiplier = speedAt50Percent;
+        }
+
+        // 速度変化があった場合のみログ
+        if (Mathf.Abs(newMultiplier - currentSpeedMultiplier) > 0.01f)
+        {
+            currentSpeedMultiplier = newMultiplier;
+            speed = baseSpeed * currentSpeedMultiplier;
+            Debug.Log($"[BallController] Speed increased! Remaining: {remainingRatio:P0}, Multiplier: {currentSpeedMultiplier}x, Speed: {speed}");
         }
     }
 
@@ -363,6 +406,20 @@ public class BallController : MonoBehaviour
             }
 
             rb.linearVelocity = direction * speed;
+
+            // パドルに当たったらコンボリセット（壁扱い）
+            if (ComboManager.Instance != null)
+            {
+                ComboManager.Instance.OnWallHit();
+            }
+        }
+        // 壁に当たった場合（コンボリセット）
+        else if (collision.gameObject.name.Contains("Wall"))
+        {
+            if (ComboManager.Instance != null)
+            {
+                ComboManager.Instance.OnWallHit();
+            }
         }
     }
 

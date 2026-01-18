@@ -2,13 +2,14 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// お助けアイテム - 🐟絵文字
-/// 包丁が当たると切り身+2
+/// お助けアイテム - 魚絵文字（fish1/2/3.png）
+/// 包丁が当たると落下きりみをスポーン
 /// </summary>
 public class PowerUpItem : MonoBehaviour
 {
     [Header("Settings")]
     public int kirimiBonus = 2;  // 切り身ボーナス
+    public float size = 1.2f;    // 魚のサイズ
 
     // グリッド上の位置（BrickManagerから設定される）
     [HideInInspector] public int gridRow;
@@ -17,6 +18,10 @@ public class PowerUpItem : MonoBehaviour
 
     private bool isUsed = false;
     private SpriteRenderer spriteRenderer;
+    private int fishType = 0;
+
+    // 魚スプライト
+    private static Sprite[] fishSprites;
 
     void Start()
     {
@@ -26,17 +31,27 @@ public class PowerUpItem : MonoBehaviour
 
     void CreateFishVisual()
     {
-        // 魚のスプライトを表示
+        // 魚スプライトを読み込み（初回のみ）
+        if (fishSprites == null)
+        {
+            fishSprites = new Sprite[3];
+            fishSprites[0] = Resources.Load<Sprite>("Sprites/fish1");
+            fishSprites[1] = Resources.Load<Sprite>("Sprites/fish2");
+            fishSprites[2] = Resources.Load<Sprite>("Sprites/fish3");
+        }
+
+        // ランダムに魚を選択
+        fishType = Random.Range(0, 3);
+        Sprite selectedFish = fishSprites[fishType];
+
         spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
         spriteRenderer.sortingOrder = 5;
 
-        // きりみ画像をロード
-        Sprite fishSprite = Resources.Load<Sprite>("Sprites/kirimi");
-        if (fishSprite != null)
+        if (selectedFish != null)
         {
-            spriteRenderer.sprite = fishSprite;
-            // サイズ調整（2倍に）
-            float scale = 1.6f / (fishSprite.texture.width / fishSprite.pixelsPerUnit);
+            spriteRenderer.sprite = selectedFish;
+            // サイズ調整
+            float scale = size / (selectedFish.texture.width / selectedFish.pixelsPerUnit);
             transform.localScale = Vector3.one * scale;
         }
         else
@@ -70,15 +85,17 @@ public class PowerUpItem : MonoBehaviour
     {
         CircleCollider2D col = gameObject.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = 1.5f;  // 当たり判定を広げる
+        col.radius = 0.5f;  // 適切なサイズに縮小
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
         if (isUsed) return;
 
-        if (other.GetComponent<BallController>() != null)
+        // ボール（メインまたはサブ）のみ反応
+        if (BallHelper.IsBall(other))
         {
+            Debug.Log($"[PowerUpItem] Hit by ball: {other.gameObject.name}");
             ActivatePowerUp();
         }
     }
@@ -87,8 +104,10 @@ public class PowerUpItem : MonoBehaviour
     {
         if (isUsed) return;
 
-        if (collision.gameObject.GetComponent<BallController>() != null)
+        // ボール（メインまたはサブ）のみ反応
+        if (BallHelper.IsBall(collision))
         {
+            Debug.Log($"[PowerUpItem] Collision with ball: {collision.gameObject.name}");
             ActivatePowerUp();
         }
     }
@@ -96,12 +115,12 @@ public class PowerUpItem : MonoBehaviour
     void ActivatePowerUp()
     {
         isUsed = true;
-        Debug.Log($"[PowerUpItem] Fish caught! +{kirimiBonus} kirimi");
+        Debug.Log($"[PowerUpItem] Fish caught! Spawning falling kirimi");
 
-        // 切り身+2
-        if (GameState.Instance != null)
+        // 落下きりみをスポーン（スコアは落下きりみ取得時に加算）
+        if (KirimiSpawner.Instance != null)
         {
-            GameState.Instance.AddKirimi(kirimiBonus);
+            KirimiSpawner.Instance.SpawnKirimi(transform.position);
         }
 
         // エフェクト

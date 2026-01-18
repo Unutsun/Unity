@@ -13,12 +13,34 @@ public class WallSetup : MonoBehaviour
 
     [Header("Settings")]
     public float wallThickness = 0.15f;  // 薄い縦線
-    public float leftMargin = 3.5f;      // 左側のマージン（きりみテキストの右に余裕を持たせる）
-    public float rightMargin = 3.5f;     // 右側のマージン（左右対称でフィールド中央配置）
+    public float leftMargin = 6.7f;      // 左側のマージン（きりみテキストの右に余裕を持たせる）
+    public float rightMargin = 6.7f;     // 右側のマージン（左右対称でフィールド中央配置）
     public bool showVisibleWalls = true; // 壁を可視化
 
     private float lastScreenWidth;
     private float lastScreenHeight;
+
+    // ボーナスタイム用（全ブロック破壊後）
+    private bool isBonusTime = false;
+    private float hue = 0f;
+    private SpriteRenderer leftWallRenderer;
+    private SpriteRenderer rightWallRenderer;
+
+    void OnEnable()
+    {
+        GameEvents.OnAllBricksDestroyed += StartBonusTime;
+    }
+
+    void OnDisable()
+    {
+        GameEvents.OnAllBricksDestroyed -= StartBonusTime;
+    }
+
+    void StartBonusTime()
+    {
+        isBonusTime = true;
+        Debug.Log("[WallSetup] BONUS TIME! Walls will glow rainbow!");
+    }
 
     void Start()
     {
@@ -37,6 +59,17 @@ public class WallSetup : MonoBehaviour
             SetupWalls();
             lastScreenWidth = Screen.width;
             lastScreenHeight = Screen.height;
+        }
+
+        // ボーナスタイム中は壁が虹色に光る
+        if (isBonusTime)
+        {
+            hue += Time.deltaTime * 0.5f;  // ゆっくり色が変わる
+            if (hue > 1f) hue -= 1f;
+            Color rainbowColor = Color.HSVToRGB(hue, 0.8f, 1f);
+
+            if (leftWallRenderer != null) leftWallRenderer.color = rainbowColor;
+            if (rightWallRenderer != null) rightWallRenderer.color = rainbowColor;
         }
     }
 
@@ -84,7 +117,7 @@ public class WallSetup : MonoBehaviour
             leftWall.position = new Vector3(fieldLeft - wallThickness / 2f, 0, 0);
             leftWall.localScale = new Vector3(wallThickness, camHeight + wallThickness * 2, 1);
             SetupCollider(leftWall.gameObject);
-            SetupWallVisual(leftWall.gameObject);
+            SetupWallVisual(leftWall.gameObject, true);
             Debug.Log($"[WallSetup] LeftWall: pos={leftWall.position}, scale={leftWall.localScale}");
         }
 
@@ -94,7 +127,7 @@ public class WallSetup : MonoBehaviour
             rightWall.position = new Vector3(fieldRight + wallThickness / 2f, 0, 0);
             rightWall.localScale = new Vector3(wallThickness, camHeight + wallThickness * 2, 1);
             SetupCollider(rightWall.gameObject);
-            SetupWallVisual(rightWall.gameObject);
+            SetupWallVisual(rightWall.gameObject, false);
             Debug.Log($"[WallSetup] RightWall: pos={rightWall.position}, scale={rightWall.localScale}");
         }
 
@@ -117,7 +150,7 @@ public class WallSetup : MonoBehaviour
         }
     }
 
-    void SetupWallVisual(GameObject wall)
+    void SetupWallVisual(GameObject wall, bool isLeft)
     {
         if (!showVisibleWalls) return;
 
@@ -134,6 +167,12 @@ public class WallSetup : MonoBehaviour
         // まないた色の縦線
         sr.color = GameColors.Manaita;
         sr.sortingOrder = 10;
+
+        // レンダラー参照を保存（フィーバー用）
+        if (isLeft)
+            leftWallRenderer = sr;
+        else
+            rightWallRenderer = sr;
     }
 
     void SetupCollider(GameObject wall)

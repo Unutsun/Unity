@@ -51,7 +51,7 @@ public class SubBall : MonoBehaviour
         mat.friction = 0f;
 
         CircleCollider2D col = gameObject.AddComponent<CircleCollider2D>();
-        col.radius = 0.3f;
+        col.radius = 0.375f;  // 1.25倍に拡大
         col.sharedMaterial = mat;
     }
 
@@ -71,7 +71,7 @@ public class SubBall : MonoBehaviour
         if (knifeSprite != null)
         {
             spriteRenderer.sprite = knifeSprite;
-            float targetSize = 0.8f;
+            float targetSize = 1.0f;  // 1.25倍に拡大（0.8 → 1.0）
             float scale = targetSize / (knifeSprite.texture.width / knifeSprite.pixelsPerUnit);
             knifeVisual.transform.localScale = Vector3.one * scale;
         }
@@ -103,8 +103,8 @@ public class SubBall : MonoBehaviour
     {
         trail = gameObject.AddComponent<TrailRenderer>();
         trail.time = 0.15f;
-        trail.startWidth = 0.3f;
-        trail.endWidth = 0.05f;
+        trail.startWidth = 0.375f;  // 1.25倍に拡大
+        trail.endWidth = 0.06f;
         trail.material = new Material(Shader.Find("Sprites/Default"));
 
         // グラデーション（色に合わせる）
@@ -141,8 +141,94 @@ public class SubBall : MonoBehaviour
     {
         if (!isLaunched) return;
 
+        MaintainSpeed();
+        ApplyHomingEffect();
         UpdateKnifeRotation();
         CheckOutOfBounds();
+    }
+
+    /// <summary>
+    /// スキル効果: KnifeHoming - ブロックに向けて微妙に角度を変える
+    /// </summary>
+    void ApplyHomingEffect()
+    {
+        if (SkillManager.Instance == null || !SkillManager.Instance.HasKnifeHoming) return;
+        if (rb == null) return;
+
+        // 上向きに移動中のみホーミング
+        if (rb.linearVelocity.y <= 0) return;
+
+        // 最も近いブロックを探す
+        GameObject nearestBrick = FindNearestBrick();
+        if (nearestBrick == null) return;
+
+        Vector2 toBrick = (nearestBrick.transform.position - transform.position).normalized;
+        Vector2 currentDir = rb.linearVelocity.normalized;
+
+        // 微妙に角度を変える（1フレームで最大2度）
+        float maxAngleChange = 2f * Time.deltaTime * 60f;  // 60FPS換算で2度/フレーム
+        Vector2 newDir = Vector2.Lerp(currentDir, toBrick, 0.02f);
+
+        // 角度変化を制限
+        float angle = Vector2.SignedAngle(currentDir, newDir);
+        if (Mathf.Abs(angle) > maxAngleChange)
+        {
+            float sign = Mathf.Sign(angle);
+            newDir = Quaternion.Euler(0, 0, sign * maxAngleChange) * currentDir;
+        }
+
+        rb.linearVelocity = newDir.normalized * speed;
+    }
+
+    GameObject FindNearestBrick()
+    {
+        GameObject[] bricks = GameObject.FindGameObjectsWithTag("Brick");
+        if (bricks.Length == 0)
+        {
+            // タグがない場合はBrickControllerで検索
+            BrickController[] controllers = FindObjectsByType<BrickController>(FindObjectsSortMode.None);
+            if (controllers.Length == 0) return null;
+
+            float minDist = float.MaxValue;
+            GameObject nearest = null;
+            foreach (var bc in controllers)
+            {
+                float dist = Vector2.Distance(transform.position, bc.transform.position);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    nearest = bc.gameObject;
+                }
+            }
+            return nearest;
+        }
+
+        float minDistance = float.MaxValue;
+        GameObject nearestBrick = null;
+        foreach (var brick in bricks)
+        {
+            float dist = Vector2.Distance(transform.position, brick.transform.position);
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                nearestBrick = brick;
+            }
+        }
+        return nearestBrick;
+    }
+
+    /// <summary>
+    /// 速度を一定に保つ（角度による速度変化を防止）
+    /// </summary>
+    void MaintainSpeed()
+    {
+        if (rb == null) return;
+
+        if (rb.linearVelocity.magnitude > 0.1f)
+        {
+            Vector2 vel = rb.linearVelocity.normalized;
+            rb.linearVelocity = vel * speed;
+        }
     }
 
     // 包丁画像の初期向きオフセット（メインボールと同じ値）
@@ -190,9 +276,39 @@ public class SubBall : MonoBehaviour
             if (newVel.y < 0)
             {
                 newVel.y = Mathf.Abs(newVel.y);  // 上向きに
+
+                // スキル効果: KnifeRebound - 落下中のナイフを強く跳ね返す
+                if (SkillManager.Instance != null && SkillManager.Instance.HasKnifeRebound)
+                {
+                    // より垂直に近い角度で強く跳ね返す
+                    newVel.x *= 0.3f;  // 横方向を抑える
+                    newVel.y = Mathf.Max(newVel.y, 1f);  // 上方向を強化
+                    Debug.Log("[SubBall] KnifeRebound skill activated!");
+                }
             }
             rb.linearVelocity = newVel.normalized * speed;
             Debug.Log("[SubBall] Bounced off paddle");
+        }
+    }
+
+    /// <summary>
+    /// トリガーとの衝突（FallingKirimi等）
+    /// FlowingFishはisTrigger=falseなのでOnCollisionEnter2Dで処理される
+    /// </summary>
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        // 落下きりみを収集
+        FallingKirimi kirimi = other.GetComponent<FallingKirimi>();
+        if (kirimi != null)
+        {
+            // SubBallでもきりみを収集できる
+            if (GameState.Instance != null)
+            {
+                int points = kirimi.isGaming ? kirimi.gamingPoints : kirimi.normalPoints;
+                GameState.Instance.AddKirimi(points);
+                Debug.Log($"[SubBall] Collected kirimi! +{points} points");
+            }
+            Destroy(other.gameObject);
         }
     }
 

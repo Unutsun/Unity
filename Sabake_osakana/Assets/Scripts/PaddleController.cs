@@ -17,6 +17,8 @@ public class PaddleController : MonoBehaviour
     private Camera mainCamera;
     private Rigidbody2D rb;
     private float targetX;
+    private Vector3 baseScale;
+    private float currentSizeMultiplier = 1f;
 
     void Awake()
     {
@@ -98,6 +100,9 @@ public class PaddleController : MonoBehaviour
             scale = transform.localScale;
         }
 
+        // ベースサイズを保存（スキル効果用）
+        baseScale = transform.localScale;
+
         // コライダーサイズはlocalScaleを考慮して1x1に設定
         // (localScaleがコライダーサイズに適用されるため)
         col.size = new Vector2(1f, 1f);
@@ -140,7 +145,29 @@ public class PaddleController : MonoBehaviour
             }
         }
 
+        // スキル効果: BigPaddle
+        UpdateSkillEffects();
+
         HandleInput();
+    }
+
+    void UpdateSkillEffects()
+    {
+        if (SkillManager.Instance == null) return;
+
+        float targetMultiplier = SkillManager.Instance.PaddleSizeMultiplier;
+        if (Mathf.Abs(currentSizeMultiplier - targetMultiplier) > 0.01f)
+        {
+            currentSizeMultiplier = targetMultiplier;
+            transform.localScale = new Vector3(
+                baseScale.x * currentSizeMultiplier,
+                baseScale.y,
+                baseScale.z
+            );
+            // 可動域を再計算
+            SetupMovementBounds();
+            Debug.Log($"[PaddleController] Size multiplier changed to {currentSizeMultiplier}");
+        }
     }
 
     void FixedUpdate()

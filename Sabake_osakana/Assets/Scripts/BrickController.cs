@@ -14,10 +14,16 @@ public class BrickController : MonoBehaviour
         // BallHelperで統一判定（メインボール・サブボール両対応）
         if (BallHelper.IsBall(collision))
         {
-            // イベント経由でスコア加算を通知
-            GameEvents.TriggerBrickDestroyed(scoreValue);
+            // 落下きりみをスポーン（スコアは落下きりみ取得時に加算）
+            if (KirimiSpawner.Instance != null)
+            {
+                KirimiSpawner.Instance.SpawnKirimi(transform.position);
+            }
 
-            Debug.Log($"Brick destroyed! +{scoreValue} points");
+            // ブロック破壊カウント用（スコアは0、カウントのみ）
+            GameEvents.TriggerBrickDestroyed(0);
+
+            Debug.Log($"Brick destroyed! Kirimi spawned at {transform.position}");
             Destroy(gameObject);
         }
     }

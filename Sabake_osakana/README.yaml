@@ -43,6 +43,11 @@ current_status:
     - "きりみアイテム（kirimi.png、当たり判定拡大）"
     - "マルチボールゲージシステム（円形UI）"
     - "サブボール生成（色違い包丁）"
+    - "落下きりみシステム（ブロック破壊時にきりみがスポーン）"
+    - "流れてくる魚システム（ブロック50%以下で発動）"
+    - "ボーナスタイム（全ブロック破壊後、きりみ稼ぎ放題）"
+    - "フィーバータイム（虹色魚破壊で魚大量スポーン）"
+    - "ローグライト風スキルシステム（6種類から3つ選択）"
 
   recently_completed:
     - "色設定CSV化（ColorData.csv + GameColors.cs改修）"
@@ -59,9 +64,17 @@ current_status:
     - "BallHelper.cs（タグ不要のボール判定ユーティリティ）"
     - "UILayoutData.csv + UILayoutManager.cs（UI配置の外部データ化）"
     - "StageManager.cs（ステージ進行管理）"
+    - "FallingKirimi.cs（落下きりみ）"
+    - "KirimiSpawner.cs（きりみスポーン管理）"
+    - "FlowingFish.cs（流れてくる魚）"
+    - "FlowingFishManager.cs（魚スポーン管理）"
+    - "SkillManager.cs（スキルシステム管理）"
+    - "SkillSelectionUI.cs（スキル選択UI）"
+    - "SkillType.cs/SkillData.cs（スキルデータ定義）"
+    - "Twemoji魚スプライト（fish1/2/3.png）"
 
   in_progress:
-    - "マルチボール機能のテストプレイ"
+    - "スキルシステムの動作確認"
 
 # =============================================
 # リソース一覧
@@ -93,6 +106,11 @@ resources:
         - "knife_pink.png"
       usage: "サブボール（MultiBallManager）で使用"
       generator: "Tools/generate_rainbow_knives.py"
+
+    - path: "Resources/Sprites/fish1.png, fish2.png, fish3.png"
+      description: "Twemoji魚スプライト（🐟🐠🐡）"
+      usage: "FlowingFishで使用"
+      source: "Twemoji公式からダウンロード"
 
     - path: "Resources/Sprites/bone_image.png"
       description: "骨背景画像（透過PNG）"
@@ -326,6 +344,84 @@ architecture:
         maxStages: 3
         gameSceneName: "SampleScene"
         titleSceneName: "TitleScene"
+
+    # ===== スキルシステム =====
+    SkillManager.cs:
+      role: "スキル管理（シングルトン）"
+      features:
+        - "リザルト画面の「つづける」押下でスキル選択表示"
+        - "6種類のスキルからランダムに3つを選択肢として表示"
+        - "獲得したスキルは次回以降の選択肢から除外"
+        - "各スキル効果はプロパティで提供（疎結合）"
+      skills:
+        BigPaddle: "パドルが1.5倍大きくなる"
+        KnifeRebound: "落下中のナイフがパドルで強く跳ね返る"
+        KnifeHoming: "ナイフがブロックに向けて微妙に角度を変える"
+        ExtraKnife: "サブ包丁の同時出現数+1"
+        SlowFish: "魚の落下速度0.7倍"
+        GamingBoost: "ゲーミングきりみ出現率UP（5%→15%）"
+      events:
+        OnSkillSelectionRequired: "スキル選択画面表示リクエスト"
+        OnSkillAcquired: "スキル獲得時"
+        OnSkillSelectionComplete: "選択完了（次ステージへ進む）"
+
+    SkillSelectionUI.cs:
+      role: "スキル選択UI"
+      features:
+        - "SkillManager.OnSkillSelectionRequiredをリッスン"
+        - "3つのスキルボタンを動的生成"
+        - "選択時にSkillManager.SelectSkill()を呼び出し"
+
+    SkillType.cs:
+      role: "スキル種類の列挙型"
+
+    SkillData.cs:
+      role: "スキル情報クラス"
+      properties:
+        - "type: SkillType"
+        - "nameJP: 日本語名"
+        - "description: 説明"
+        - "icon: アイコン文字"
+
+    # ===== 流れてくる魚システム =====
+    FlowingFishManager.cs:
+      role: "流れてくる魚の管理（シングルトン）"
+      features:
+        - "ブロック残り50%以下で発動"
+        - "時間経過でスポーン間隔が短くなる"
+        - "ボーナスタイム（全ブロック破壊後）で虹色魚出現"
+        - "フィーバータイム（虹色魚破壊時）で大量スポーン"
+      settings:
+        initialSpawnInterval: 3.0
+        minSpawnInterval: 0.8
+        bonusSpawnInterval: 0.5
+        rainbowFishChance: 0.3
+        feverDuration: 5.0
+        feverFishBurst: 10
+
+    FlowingFish.cs:
+      role: "流れてくる魚の挙動"
+      features:
+        - "上から下に向かって移動"
+        - "包丁またはパドルで破壊可能"
+        - "破壊時にきりみをスポーン（通常3個、虹色5個）"
+        - "虹色魚は後ろにオーラ表示、破壊でフィーバー発動"
+
+    # ===== 落下きりみシステム =====
+    KirimiSpawner.cs:
+      role: "きりみスポーン管理（シングルトン）"
+      features:
+        - "ブロック破壊・魚破壊時にきりみをスポーン"
+        - "扇状に散らしてスポーン"
+        - "5%の確率でゲーミングきりみ（GamingBoostで15%）"
+
+    FallingKirimi.cs:
+      role: "落下きりみの挙動"
+      features:
+        - "重力で落下"
+        - "パドルに当たるとスコア加算"
+        - "通常きりみ: 1点、ゲーミングきりみ: 10点"
+        - "ゲーミングきりみは虹色アニメーション、落下速度1/4"
 
     WallSetup.cs:
       role: "壁の自動配置"
@@ -626,6 +722,42 @@ work_log:
       before: "PaddleControllerに古いマージン値(2.0f, 2.5f)がハードコード→WallSetupと不整合"
       after: "PaddleControllerがWallSetupからマージン値を動的取得→常に同期"
       benefit: "マージン値をWallSetupだけで管理、他コンポーネントは自動追従"
+
+  - date: 2026-01-12
+    action: "ローグライト風スキルシステム実装"
+    result:
+      - "SkillType.cs作成（6種類のスキル列挙型）"
+      - "SkillData.cs作成（スキル情報クラス）"
+      - "SkillManager.cs作成（スキル管理シングルトン）"
+      - "SkillSelectionUI.cs作成（スキル選択UI動的生成）"
+      - "リザルト画面「つづける」でスキル選択表示"
+      - "各スキル効果をプロパティで提供（疎結合設計）"
+      - "SubBall.csサイズ1.25倍に拡大"
+      - "虹色魚をPNGスプライト＋オーラ表示に変更"
+    files_changed:
+      - "Assets/Scripts/SkillType.cs（新規）"
+      - "Assets/Scripts/SkillData.cs（新規）"
+      - "Assets/Scripts/SkillManager.cs（新規）"
+      - "Assets/Scripts/SkillSelectionUI.cs（新規）"
+      - "Assets/Scripts/UIManager.cs"
+      - "Assets/Scripts/PaddleController.cs"
+      - "Assets/Scripts/SubBall.cs"
+      - "Assets/Scripts/MultiBallManager.cs"
+      - "Assets/Scripts/FlowingFish.cs"
+      - "Assets/Scripts/FlowingFishManager.cs"
+      - "Assets/Scripts/KirimiSpawner.cs"
+      - "Assets/Scripts/GameManager.cs"
+    skills_implemented:
+      BigPaddle: "パドルが1.5倍大きくなる"
+      KnifeRebound: "落下中のナイフがパドルで強く跳ね返る"
+      KnifeHoming: "ナイフがブロックに向けて微妙に角度を変える"
+      ExtraKnife: "サブ包丁の同時出現数+1"
+      SlowFish: "魚の落下速度0.7倍"
+      GamingBoost: "ゲーミングきりみ出現率UP（5%→15%）"
+    design_notes:
+      trigger: "リザルト画面の「つづける」ボタン押下時"
+      selection: "6種類から未取得の3つをランダム表示"
+      effect_application: "各コンポーネントがSkillManagerのプロパティを参照（疎結合）"
 
 # =============================================
 # 次回作業時の手順

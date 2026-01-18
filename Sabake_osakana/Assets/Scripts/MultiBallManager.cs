@@ -101,6 +101,21 @@ public class MultiBallManager : MonoBehaviour
     {
         if (mainBall == null) return;
 
+        // スキル効果: ExtraKnife - 追加のサブボールをスポーン
+        int extraCount = SkillManager.Instance != null ? SkillManager.Instance.ExtraKnifeCount : 0;
+        int totalSpawn = 1 + extraCount;
+
+        for (int i = 0; i < totalSpawn; i++)
+        {
+            SpawnSingleSubBall(i * 0.5f);  // 少し位置をずらす
+        }
+    }
+
+    /// <summary>
+    /// 1つのサブボールを生成
+    /// </summary>
+    void SpawnSingleSubBall(float xOffset)
+    {
         // 色を決定（虹色順）
         Color ballColor = rainbowColors[nextColorIndex % rainbowColors.Length];
 
@@ -109,7 +124,7 @@ public class MultiBallManager : MonoBehaviour
         // サブボール生成位置（画面上部中央から落下）
         Camera cam = Camera.main;
         float spawnY = cam != null ? cam.orthographicSize - 1f : 4f;
-        float spawnX = Random.Range(-2f, 2f);  // 少しランダムなX位置
+        float spawnX = Random.Range(-2f, 2f) + xOffset;  // 少しランダムなX位置
         Vector3 spawnPos = new Vector3(spawnX, spawnY, 0);
 
         // サブボールGameObject作成
